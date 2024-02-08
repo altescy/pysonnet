@@ -32,6 +32,8 @@ class TokenType(Enum):
     XOR = "^"
     LSHIFT = "<<"
     RSHIFT = ">>"
+    BANG = "!"
+    TILDE = "~"
 
     # Delimiters
     DOT = "."
