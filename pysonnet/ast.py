@@ -149,6 +149,7 @@ class BinaryExpression(Expression[_T_co]):
         LE = enum.auto()
         GT = enum.auto()
         GE = enum.auto()
+        INDEX = enum.auto()
 
     operator: Operator
     left: Expression[_T_co]

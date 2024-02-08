@@ -97,6 +97,7 @@ class Parser:
             TokenType.LE: self._parse_binary_expression,
             TokenType.GE: self._parse_binary_expression,
             TokenType.DOT: self._parse_binary_expression,
+            TokenType.LBRACKET: self._parse_binary_expression,
         }
 
     def _peek_error(self, token_type: TokenType) -> None:
@@ -222,6 +223,26 @@ class Parser:
             operator = ast.BinaryExpression.Operator.LE
         elif self._current_token_type_is(TokenType.GE):
             operator = ast.BinaryExpression.Operator.GE
+        elif self._current_token_type_is(TokenType.DOT):
+            if not self._expect_peek_type(TokenType.IDENT):
+                return None
+            return ast.BinaryExpression(
+                ast.BinaryExpression.Operator.INDEX,
+                left,
+                ast.String(self._cur_token.literal),
+            )
+        elif self._current_token_type_is(TokenType.LBRACKET):
+            self.next_token()
+            index = self._parse_expression(Precedence.LOWEST)
+            if index is None:
+                return None
+            if not self._expect_peek_type(TokenType.RBRACKET):
+                return None
+            return ast.BinaryExpression(
+                ast.BinaryExpression.Operator.INDEX,
+                left,
+                index,
+            )
         else:
             self._errors.append(f"unknown binary operator: {self._cur_token.literal}")
             return None

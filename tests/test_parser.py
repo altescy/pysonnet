@@ -121,6 +121,38 @@ from pysonnet.parser import Parser
                 ),
             ),
         ),
+        (
+            """
+            local x = {y: 123}.y, z = [1, 2, 3][0];
+            {a: x, b: z}
+            """,
+            ast.LocalExpression(
+                [
+                    ast.BindStatement(
+                        ast.Identifier("x"),
+                        ast.BinaryExpression(
+                            ast.BinaryExpression.Operator.INDEX,
+                            ast.Object([ast.MemberStatement(ast.FieldStatement(ast.String("y"), ast.Number(123)))]),
+                            ast.String("y"),
+                        ),
+                    ),
+                    ast.BindStatement(
+                        ast.Identifier("z"),
+                        ast.BinaryExpression(
+                            ast.BinaryExpression.Operator.INDEX,
+                            ast.Array([ast.Number(1), ast.Number(2), ast.Number(3)]),
+                            ast.Number(0),
+                        ),
+                    ),
+                ],
+                ast.Object(
+                    [
+                        ast.MemberStatement(ast.FieldStatement(ast.String("a"), ast.Identifier("x"))),
+                        ast.MemberStatement(ast.FieldStatement(ast.String("b"), ast.Identifier("z"))),
+                    ]
+                ),
+            ),
+        ),
     ],
 )
 def test_object_expression(inputs: str, expected_expr: Any) -> None:
