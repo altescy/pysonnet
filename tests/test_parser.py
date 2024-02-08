@@ -85,9 +85,46 @@ from pysonnet.parser import Parser
                 ast.Identifier("b"),
             ),
         ),
+        (
+            """
+            local obj = { msg: 'Hi' };
+            [ obj + { msg: super.msg + '!' } ]
+            """,
+            ast.LocalExpression(
+                [
+                    ast.BindStatement(
+                        ast.Identifier("obj"),
+                        ast.Object([ast.MemberStatement(ast.FieldStatement(ast.String("msg"), ast.String("Hi")))]),
+                    )
+                ],
+                ast.Array(
+                    [
+                        ast.BinaryExpression(
+                            ast.BinaryExpression.Operator.ADD,
+                            ast.Identifier("obj"),
+                            ast.Object(
+                                [
+                                    ast.MemberStatement(
+                                        ast.FieldStatement(
+                                            ast.String("msg"),
+                                            ast.BinaryExpression(
+                                                ast.BinaryExpression.Operator.ADD,
+                                                ast.Super(ast.String("msg")),
+                                                ast.String("!"),
+                                            ),
+                                        )
+                                    )
+                                ]
+                            ),
+                        )
+                    ]
+                ),
+            ),
+        ),
     ],
 )
 def test_object_expression(inputs: str, expected_expr: Any) -> None:
     parser = Parser(Lexer(StringIO(inputs)))
     statement = parser.parse()
+    print(parser._errors)
     assert statement == expected_expr

@@ -75,6 +75,7 @@ class Parser:
             TokenType.MINUS: self._parse_unary_expression,
             TokenType.BANG: self._parse_unary_expression,
             TokenType.TILDE: self._parse_unary_expression,
+            TokenType.SUPER: self._parse_super,
         }
         self._infix_parsers: Dict[TokenType, Callable[[ast.Expression], Optional[ast.Expression]]] = {
             TokenType.PLUS: self._parse_binary_expression,
@@ -95,6 +96,7 @@ class Parser:
             TokenType.GT: self._parse_binary_expression,
             TokenType.LE: self._parse_binary_expression,
             TokenType.GE: self._parse_binary_expression,
+            TokenType.DOT: self._parse_binary_expression,
         }
 
     def _peek_error(self, token_type: TokenType) -> None:
@@ -145,6 +147,23 @@ class Parser:
         if not self._expect_peek_type(TokenType.RPAREN):
             return None
         return expression
+
+    def _parse_super(self) -> Optional[ast.Super]:
+        self.next_token()  # consume the 'super' token
+        key: ast.Expression[str]
+        if self._current_token_type_is(TokenType.DOT):
+            if not self._expect_peek_type(TokenType.IDENT):
+                return None
+            key = ast.String(self._cur_token.literal)
+        elif self._current_token_type_is(TokenType.LBRACKET):
+            self.next_token()  # consume the '[' token
+            expression = self._parse_expression(Precedence.LOWEST)
+            if expression is None:
+                return None
+            key = expression
+            if not self._expect_peek_type(TokenType.RBRACKET):
+                return None
+        return ast.Super(key)
 
     def _parse_unary_expression(self) -> Optional[ast.UnaryExpression]:
         operator: ast.UnaryExpression.Operator
@@ -409,17 +428,16 @@ class Parser:
 
         # parse array
         elements: List[ast.Expression[Any]] = [first_expression]
+        if self._current_token_type_is(TokenType.COMMA):
+            self.next_token()
         while not self._current_token_type_is(TokenType.RBRACKET):
-            if not self._current_token_type_is(TokenType.COMMA):
-                self._errors.append("expected ',' or ']'")
-                return None
-            self.next_token()  # consume the ',' token
             element = self._parse_expression(Precedence.LOWEST)
             if element is None:
                 return None
             elements.append(element)
+            if self._peek_token_type_is(TokenType.COMMA):
+                self.next_token()
             self.next_token()
-
         return ast.Array(elements)
 
     def _parse_statement(self) -> Optional[ast.Statement]:

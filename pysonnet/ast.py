@@ -70,7 +70,7 @@ class FieldStatement(Generic[_T], Statement):
         HIDDEN = enum.auto()
         FORCE_VISIBLE = enum.auto()
 
-    key: Union[Identifier, String, Expression[Union[str, None]]]
+    key: Expression[Union[str, None]]
     expr: Expression[_T]
     inherit: bool = False
     visibility: Visibility = Visibility.VISIBLE
@@ -153,3 +153,8 @@ class BinaryExpression(Expression[_T_co]):
     operator: Operator
     left: Expression[_T_co]
     right: Expression[_T_co]
+
+
+@dataclasses.dataclass(frozen=True)
+class Super(Expression[None]):
+    key: Expression[str]
