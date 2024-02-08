@@ -197,6 +197,17 @@ _EXAPLES = [
             Token(TokenType.RPAREN, ")"),
         ],
     ),
+    (
+        """
+        a bc _def ghe0
+        """,
+        [
+            Token(TokenType.IDENT, "a"),
+            Token(TokenType.IDENT, "bc"),
+            Token(TokenType.IDENT, "_def"),
+            Token(TokenType.IDENT, "ghe0"),
+        ],
+    ),
 ]
 
 

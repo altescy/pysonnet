@@ -2,6 +2,8 @@ from typing import TextIO
 
 from .token import Token, TokenType, lookup_hidden, lookup_ident
 
+_IDENT_START = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
+_IDENT_CONT = _IDENT_START + "0123456789"
 _HEXDIGITS = "0123456789abcdefABCDEF"
 _HORIZ_WS = " \t\r"
 _INDENT_WS = " \t"
@@ -26,9 +28,12 @@ class Lexer:
         return self._ch
 
     def _read_identifier(self) -> str:
-        literal = ""
+        literal = self._ch
+        self._read_char()
         while True:
-            if self._ch.isalpha():
+            if self._ch == "":
+                raise ValueError("unexpected end of file")
+            if self._ch in _IDENT_CONT:
                 literal += self._ch
                 self._read_char()
             else:
@@ -335,7 +340,7 @@ class Lexer:
             return self.next_token()
         elif self._ch == "":
             token = Token(TokenType.EOF, "")
-        elif self._ch.isalpha():
+        elif self._ch in _IDENT_START:
             literal = self._read_identifier()
             token_type = lookup_ident(literal)
             return Token(token_type, literal)
