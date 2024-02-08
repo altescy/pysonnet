@@ -77,12 +77,6 @@ class FieldStatement(Generic[_T], Statement):
 
 
 @dataclasses.dataclass(frozen=True)
-class MemberStatement(Statement):
-    # TODO: add assert statement
-    content: Union[ObjlocalStatement, FieldStatement]
-
-
-@dataclasses.dataclass(frozen=True)
 class ForStatement(Generic[_T], Statement):
     identifiler: Identifier[_T]
     expression: Expression[List[_T]]
@@ -91,6 +85,10 @@ class ForStatement(Generic[_T], Statement):
 @dataclasses.dataclass(frozen=True)
 class IfStatement(Statement):
     condition: Expression[bool]
+
+
+# TODO: add assert statement
+MemberStatement = Union[ObjlocalStatement, FieldStatement]
 
 
 @dataclasses.dataclass(frozen=True)

@@ -13,11 +13,11 @@ from pysonnet.parser import Parser
     [
         (
             "{a: 123}",
-            ast.Object([ast.MemberStatement(ast.FieldStatement(ast.String("a"), ast.Number(123)))]),
+            ast.Object([ast.FieldStatement(ast.String("a"), ast.Number(123))]),
         ),
         (
             "{'a': 123}",
-            ast.Object([ast.MemberStatement(ast.FieldStatement(ast.String("a"), ast.Number(123)))]),
+            ast.Object([ast.FieldStatement(ast.String("a"), ast.Number(123))]),
         ),
         (
             """
@@ -31,10 +31,8 @@ from pysonnet.parser import Parser
                 ],
                 ast.Object(
                     [
-                        ast.MemberStatement(ast.FieldStatement(ast.String("a"), ast.Identifier("x"))),
-                        ast.MemberStatement(
-                            ast.FieldStatement(ast.String("b"), ast.Array([ast.Identifier("y"), ast.Number(3)]))
-                        ),
+                        ast.FieldStatement(ast.String("a"), ast.Identifier("x")),
+                        ast.FieldStatement(ast.String("b"), ast.Array([ast.Identifier("y"), ast.Number(3)])),
                     ]
                 ),
             ),
@@ -94,7 +92,7 @@ from pysonnet.parser import Parser
                 [
                     ast.BindStatement(
                         ast.Identifier("obj"),
-                        ast.Object([ast.MemberStatement(ast.FieldStatement(ast.String("msg"), ast.String("Hi")))]),
+                        ast.Object([ast.FieldStatement(ast.String("msg"), ast.String("Hi"))]),
                     )
                 ],
                 ast.Array(
@@ -104,15 +102,13 @@ from pysonnet.parser import Parser
                             ast.Identifier("obj"),
                             ast.Object(
                                 [
-                                    ast.MemberStatement(
-                                        ast.FieldStatement(
-                                            ast.String("msg"),
-                                            ast.BinaryExpression(
-                                                ast.BinaryExpression.Operator.ADD,
-                                                ast.Super(ast.String("msg")),
-                                                ast.String("!"),
-                                            ),
-                                        )
+                                    ast.FieldStatement(
+                                        ast.String("msg"),
+                                        ast.BinaryExpression(
+                                            ast.BinaryExpression.Operator.ADD,
+                                            ast.Super(ast.String("msg")),
+                                            ast.String("!"),
+                                        ),
                                     )
                                 ]
                             ),
@@ -132,7 +128,7 @@ from pysonnet.parser import Parser
                         ast.Identifier("x"),
                         ast.BinaryExpression(
                             ast.BinaryExpression.Operator.INDEX,
-                            ast.Object([ast.MemberStatement(ast.FieldStatement(ast.String("y"), ast.Number(123)))]),
+                            ast.Object([ast.FieldStatement(ast.String("y"), ast.Number(123))]),
                             ast.String("y"),
                         ),
                     ),
@@ -147,8 +143,8 @@ from pysonnet.parser import Parser
                 ],
                 ast.Object(
                     [
-                        ast.MemberStatement(ast.FieldStatement(ast.String("a"), ast.Identifier("x"))),
-                        ast.MemberStatement(ast.FieldStatement(ast.String("b"), ast.Identifier("z"))),
+                        ast.FieldStatement(ast.String("a"), ast.Identifier("x")),
+                        ast.FieldStatement(ast.String("b"), ast.Identifier("z")),
                     ]
                 ),
             ),

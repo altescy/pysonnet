@@ -371,20 +371,20 @@ class Parser:
         return ast.FieldStatement(key, expression, inherit, visibility)
 
     def _parse_member_statement(self) -> Optional[ast.MemberStatement]:
-        content: Union[ast.ObjlocalStatement, ast.FieldStatement, None]
+        member: Optional[ast.MemberStatement]
         if self._current_token_type_is(TokenType.LOCAL):
-            content = self._parse_objlocal_statement()
+            member = self._parse_objlocal_statement()
         elif (
             self._current_token_type_is(TokenType.IDENT)
             or self._current_token_type_is(TokenType.STRING)
             or self._current_token_type_is(TokenType.LBRACKET)
         ):
-            content = self._parse_field_statement()
+            member = self._parse_field_statement()
         else:
-            content = None
-        if content is None:
+            member = None
+        if member is None:
             return None
-        return ast.MemberStatement(content)
+        return member
 
     def _parse_for_statement(self) -> Optional[ast.ForStatement]:
         self.next_token()  # consume the 'for' token
