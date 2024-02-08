@@ -13,7 +13,7 @@ from pysonnet.parser import Parser
     [
         (
             "{a: 123}",
-            ast.Object([ast.MemberStatement(ast.FieldStatement(ast.Identifier("a"), ast.Number(123)))]),
+            ast.Object([ast.MemberStatement(ast.FieldStatement(ast.String("a"), ast.Number(123)))]),
         ),
         (
             "{'a': 123}",
@@ -31,9 +31,9 @@ from pysonnet.parser import Parser
                 ],
                 ast.Object(
                     [
-                        ast.MemberStatement(ast.FieldStatement(ast.Identifier("a"), ast.Identifier("x"))),
+                        ast.MemberStatement(ast.FieldStatement(ast.String("a"), ast.Identifier("x"))),
                         ast.MemberStatement(
-                            ast.FieldStatement(ast.Identifier("b"), ast.Array([ast.Identifier("y"), ast.Number(3)]))
+                            ast.FieldStatement(ast.String("b"), ast.Array([ast.Identifier("y"), ast.Number(3)]))
                         ),
                     ]
                 ),

@@ -287,9 +287,9 @@ class Parser:
         return ast.ObjlocalStatement(bind)
 
     def _parse_field_statement(self) -> Optional[ast.FieldStatement]:
-        key: Union[ast.Identifier, ast.String, ast.Expression[str]]
+        key: ast.Expression[str]
         if self._current_token_type_is(TokenType.IDENT):
-            key = ast.Identifier(self._cur_token.literal)
+            key = ast.String(self._cur_token.literal)
         elif self._current_token_type_is(TokenType.STRING):
             key = ast.String(self._cur_token.literal)
         elif self._current_token_type_is(TokenType.LBRACKET):
