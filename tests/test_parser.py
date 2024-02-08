@@ -196,6 +196,40 @@ from pysonnet.parser import Parser
                 ]
             ),
         ),
+        (
+            """
+            local f = function(x) x + 1;
+            { a: f(1), b(x): x * x }
+            """,
+            ast.LocalExpression(
+                [
+                    ast.BindStatement(
+                        ast.Identifier("f"),
+                        ast.Function(
+                            [ast.ParamStatement(ast.Identifier("x"))],
+                            ast.BinaryExpression(ast.BinaryExpression.Operator.ADD, ast.Identifier("x"), ast.Number(1)),
+                        ),
+                    )
+                ],
+                ast.Object(
+                    [
+                        ast.FieldStatement(
+                            ast.String("a"),
+                            ast.Call(ast.Identifier("f"), [ast.Number(1)], {}),
+                        ),
+                        ast.FieldStatement(
+                            ast.String("b"),
+                            ast.Function(
+                                [ast.ParamStatement(ast.Identifier("x"))],
+                                ast.BinaryExpression(
+                                    ast.BinaryExpression.Operator.MUL, ast.Identifier("x"), ast.Identifier("x")
+                                ),
+                            ),
+                        ),
+                    ]
+                ),
+            ),
+        ),
     ],
 )
 def test_object_expression(inputs: str, expected_expr: Any) -> None:

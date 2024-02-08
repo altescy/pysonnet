@@ -1,7 +1,7 @@
 import abc
 import dataclasses
 import enum
-from typing import Any, Dict, Generic, List, Literal, TypeVar, Union
+from typing import Any, Callable, Dict, Generic, List, Literal, Optional, TypeVar, Union
 
 _T = TypeVar("_T")
 _T_co = TypeVar("_T_co", covariant=True)
@@ -59,24 +59,6 @@ class BindStatement(Generic[_T], Statement):
 
 
 @dataclasses.dataclass(frozen=True)
-class ObjlocalStatement(Statement):
-    bind: BindStatement
-
-
-@dataclasses.dataclass(frozen=True)
-class FieldStatement(Generic[_T], Statement):
-    class Visibility(enum.Enum):
-        VISIBLE = enum.auto()
-        HIDDEN = enum.auto()
-        FORCE_VISIBLE = enum.auto()
-
-    key: Expression[Union[str, None]]
-    expr: Expression[_T]
-    inherit: bool = False
-    visibility: Visibility = Visibility.VISIBLE
-
-
-@dataclasses.dataclass(frozen=True)
 class ForStatement(Generic[_T], Statement):
     identifiler: Identifier[_T]
     expression: Expression[List[_T]]
@@ -85,27 +67,6 @@ class ForStatement(Generic[_T], Statement):
 @dataclasses.dataclass(frozen=True)
 class IfStatement(Statement):
     condition: Expression[bool]
-
-
-# TODO: add assert statement
-MemberStatement = Union[ObjlocalStatement, FieldStatement]
-
-
-@dataclasses.dataclass(frozen=True)
-class Object(Expression[Dict[str, Any]]):
-    members: List[MemberStatement]
-
-
-@dataclasses.dataclass(frozen=True)
-class Array(Expression[List[Any]]):
-    elements: List[Expression[Any]]
-
-
-@dataclasses.dataclass(frozen=True)
-class ListComprehension(Expression[List[Any]]):
-    expression: Expression[Any]
-    forspec: ForStatement[Any]
-    compspec: List[Union[ForStatement, IfStatement]]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -157,3 +118,61 @@ class BinaryExpression(Expression[_T_co]):
 @dataclasses.dataclass(frozen=True)
 class Super(Expression[None]):
     key: Expression[str]
+
+
+@dataclasses.dataclass(frozen=True)
+class ParamStatement(Generic[_T_co], Statement):
+    ident: Identifier
+    default: Optional[Expression[_T_co]] = None
+
+
+@dataclasses.dataclass(frozen=True)
+class Function(Generic[_T_co], Expression[Callable[..., _T_co]]):
+    params: List[ParamStatement]
+    expr: Expression[_T_co]
+
+
+@dataclasses.dataclass(frozen=True)
+class Call(Expression[_T_co]):
+    callee: Expression[Callable[..., _T_co]]
+    args: List[Expression]
+    kwargs: Dict[Identifier, Expression]
+
+
+@dataclasses.dataclass(frozen=True)
+class ObjlocalStatement(Statement):
+    bind: BindStatement
+
+
+@dataclasses.dataclass(frozen=True)
+class FieldStatement(Generic[_T], Statement):
+    class Visibility(enum.Enum):
+        VISIBLE = enum.auto()
+        HIDDEN = enum.auto()
+        FORCE_VISIBLE = enum.auto()
+
+    key: Expression[Union[str, None]]
+    expr: Expression[_T]
+    inherit: bool = False
+    visibility: Visibility = Visibility.VISIBLE
+
+
+# TODO: add assert statement
+MemberStatement = Union[ObjlocalStatement, FieldStatement]
+
+
+@dataclasses.dataclass(frozen=True)
+class Object(Expression[Dict[str, Any]]):
+    members: List[MemberStatement]
+
+
+@dataclasses.dataclass(frozen=True)
+class Array(Expression[List[Any]]):
+    elements: List[Expression[Any]]
+
+
+@dataclasses.dataclass(frozen=True)
+class ListComprehension(Expression[List[Any]]):
+    expression: Expression[Any]
+    forspec: ForStatement[Any]
+    compspec: List[Union[ForStatement, IfStatement]]
