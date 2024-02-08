@@ -149,6 +149,53 @@ from pysonnet.parser import Parser
                 ),
             ),
         ),
+        (
+            """
+            {
+              a: ['a'],
+              b:: ['b'],
+              c::: { c: 'c' },
+              a2+: ['a2'],
+              b2+:: ['b2'],
+              c2+::: { a: 'a2', b: 'b2' },
+            }
+            """,
+            ast.Object(
+                [
+                    ast.FieldStatement(ast.String("a"), ast.Array([ast.String("a")])),
+                    ast.FieldStatement(
+                        ast.String("b"), ast.Array([ast.String("b")]), visibility=ast.FieldStatement.Visibility.HIDDEN
+                    ),
+                    ast.FieldStatement(
+                        ast.String("c"),
+                        ast.Object([ast.FieldStatement(ast.String("c"), ast.String("c"))]),
+                        visibility=ast.FieldStatement.Visibility.FORCE_VISIBLE,
+                    ),
+                    ast.FieldStatement(
+                        ast.String("a2"),
+                        ast.Array([ast.String("a2")]),
+                        inherit=True,
+                    ),
+                    ast.FieldStatement(
+                        ast.String("b2"),
+                        ast.Array([ast.String("b2")]),
+                        inherit=True,
+                        visibility=ast.FieldStatement.Visibility.HIDDEN,
+                    ),
+                    ast.FieldStatement(
+                        ast.String("c2"),
+                        ast.Object(
+                            [
+                                ast.FieldStatement(ast.String("a"), ast.String("a2")),
+                                ast.FieldStatement(ast.String("b"), ast.String("b2")),
+                            ],
+                        ),
+                        inherit=True,
+                        visibility=ast.FieldStatement.Visibility.FORCE_VISIBLE,
+                    ),
+                ]
+            ),
+        ),
     ],
 )
 def test_object_expression(inputs: str, expected_expr: Any) -> None:
