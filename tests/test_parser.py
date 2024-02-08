@@ -67,6 +67,24 @@ from pysonnet.parser import Parser
                 ast.Number(4),
             ),
         ),
+        (
+            """
+            (1 + 2 / -a) * b
+            """,
+            ast.BinaryExpression(
+                ast.BinaryExpression.Operator.MUL,
+                ast.BinaryExpression(
+                    ast.BinaryExpression.Operator.ADD,
+                    ast.Number(1),
+                    ast.BinaryExpression(
+                        ast.BinaryExpression.Operator.DIV,
+                        ast.Number(2),
+                        ast.UnaryExpression(ast.UnaryExpression.Operator.MINUS, ast.Identifier("a")),
+                    ),
+                ),
+                ast.Identifier("b"),
+            ),
+        ),
     ],
 )
 def test_object_expression(inputs: str, expected_expr: Any) -> None:

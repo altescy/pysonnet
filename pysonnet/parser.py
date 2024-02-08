@@ -67,6 +67,7 @@ class Parser:
             TokenType.NUMBER: self._parse_number,
             TokenType.STRING: self._parse_string,
             TokenType.IDENT: self._parse_identifier,
+            TokenType.LPAREN: self._parse_grouped_expression,
             TokenType.LBRACE: self._parse_object,
             TokenType.LBRACKET: self._parse_array,
             TokenType.LOCAL: self._parse_local_expression,
@@ -137,6 +138,13 @@ class Parser:
 
     def _parse_identifier(self) -> ast.Identifier:
         return ast.Identifier(self._cur_token.literal)
+
+    def _parse_grouped_expression(self) -> Optional[ast.Expression]:
+        self.next_token()  # consume the '(' token
+        expression = self._parse_expression(Precedence.LOWEST)
+        if not self._expect_peek_type(TokenType.RPAREN):
+            return None
+        return expression
 
     def _parse_unary_expression(self) -> Optional[ast.UnaryExpression]:
         operator: ast.UnaryExpression.Operator
@@ -215,7 +223,7 @@ class Parser:
         if left is None:
             return None
 
-        while not self._peek_token_type_is(TokenType.SEMICOLON) and precedence < self._peek_binary_precedence():
+        while precedence < self._peek_binary_precedence():
             assert left is not None
             infix = self._infix_parsers.get(self._peek_token.token_type)
             if infix is None:
