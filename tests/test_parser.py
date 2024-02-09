@@ -34,8 +34,8 @@ from pysonnet.parser import Parser
             """,
             ast.LocalExpression(
                 [
-                    ast.LocalExpression.Bind(ast.Identifier("x"), ast.Number(1)),
-                    ast.LocalExpression.Bind(ast.Identifier("y"), ast.String("2")),
+                    ast.Bind(ast.Identifier("x"), ast.Number(1)),
+                    ast.Bind(ast.Identifier("y"), ast.String("2")),
                 ],
                 ast.Object(
                     [
@@ -51,11 +51,7 @@ from pysonnet.parser import Parser
             [x for x in xs if !x]
             """,
             ast.LocalExpression(
-                [
-                    ast.LocalExpression.Bind(
-                        ast.Identifier("xs"), ast.Array([ast.Number(1), ast.Number(2), ast.Number(3)])
-                    )
-                ],
+                [ast.Bind(ast.Identifier("xs"), ast.Array([ast.Number(1), ast.Number(2), ast.Number(3)]))],
                 ast.ArrayComprehension(
                     ast.Identifier("x"),
                     ast.ForSpec(ast.Identifier("x"), ast.Identifier("xs")),
@@ -102,7 +98,7 @@ from pysonnet.parser import Parser
             """,
             ast.LocalExpression(
                 [
-                    ast.LocalExpression.Bind(
+                    ast.Bind(
                         ast.Identifier("obj"),
                         ast.Object([ast.ObjectField(ast.String("msg"), ast.String("Hi"))]),
                     )
@@ -136,7 +132,7 @@ from pysonnet.parser import Parser
             """,
             ast.LocalExpression(
                 [
-                    ast.LocalExpression.Bind(
+                    ast.Bind(
                         ast.Identifier("x"),
                         ast.Binary(
                             ast.Binary.Operator.INDEX,
@@ -144,7 +140,7 @@ from pysonnet.parser import Parser
                             ast.String("y"),
                         ),
                     ),
-                    ast.LocalExpression.Bind(
+                    ast.Bind(
                         ast.Identifier("z"),
                         ast.Binary(
                             ast.Binary.Operator.INDEX,
@@ -215,7 +211,7 @@ from pysonnet.parser import Parser
             """,
             ast.LocalExpression(
                 [
-                    ast.LocalExpression.Bind(
+                    ast.Bind(
                         ast.Identifier("f"),
                         ast.Function(
                             [ast.Param(ast.Identifier("x"))],
@@ -320,8 +316,8 @@ from pysonnet.parser import Parser
             """,
             ast.ObjectCompreshension(
                 [
-                    ast.ObjectLocal(ast.Identifier("p"), ast.String("v")),
-                    ast.ObjectLocal(ast.Identifier("n"), ast.Number(2)),
+                    ast.ObjectLocal(ast.Bind(ast.Identifier("p"), ast.String("v"))),
+                    ast.ObjectLocal(ast.Bind(ast.Identifier("n"), ast.Number(2))),
                 ],
                 ast.Binary[str](ast.Binary.Operator.ADD, ast.String("k"), ast.Identifier("i")),
                 ast.Binary[str](
@@ -355,9 +351,9 @@ from pysonnet.parser import Parser
             """,
             ast.LocalExpression(
                 [
-                    ast.LocalExpression.Bind(ast.Identifier("lib"), ast.Import("lib.jsonnet")),
-                    ast.LocalExpression.Bind(ast.Identifier("text"), ast.Importstr("body.txt")),
-                    ast.LocalExpression.Bind(ast.Identifier("bin"), ast.Importbin("some.bin")),
+                    ast.Bind(ast.Identifier("lib"), ast.Import("lib.jsonnet")),
+                    ast.Bind(ast.Identifier("text"), ast.Importstr("body.txt")),
+                    ast.Bind(ast.Identifier("bin"), ast.Importbin("some.bin")),
                 ],
                 ast.Object([]),
             ),
@@ -384,7 +380,7 @@ from pysonnet.parser import Parser
             """,
             ast.LocalExpression(
                 [
-                    ast.LocalExpression.Bind(
+                    ast.Bind(
                         ast.Identifier("secret"),
                         ast.Apply(
                             ast.Binary(ast.Binary.Operator.INDEX, ast.Identifier("utils"), ast.String("store")),
@@ -419,7 +415,7 @@ from pysonnet.parser import Parser
             """,
             ast.LocalExpression(
                 [
-                    ast.LocalExpression.Bind(
+                    ast.Bind(
                         ast.Identifier("f"),
                         ast.Function(
                             [ast.Param(ast.Identifier("x"))],
@@ -609,6 +605,36 @@ from pysonnet.parser import Parser
                     ast.Number(2),
                 ],
                 {},
+            ),
+        ),
+        (
+            """
+            {
+              local a() =
+                local x = 1;
+                { y: x },
+              z: a(),
+            }
+            """,
+            ast.Object(
+                [
+                    ast.ObjectLocal(
+                        ast.Bind(
+                            ast.Identifier("a"),
+                            ast.Function(
+                                [],
+                                ast.LocalExpression(
+                                    [ast.Bind(ast.Identifier("x"), ast.Number(1))],
+                                    ast.Object([ast.ObjectField(ast.String("y"), ast.Identifier("x"))]),
+                                ),
+                            ),
+                        ),
+                    ),
+                    ast.ObjectField(
+                        ast.String("z"),
+                        ast.Apply(ast.Identifier("a"), [], {}),
+                    ),
+                ],
             ),
         ),
     ],

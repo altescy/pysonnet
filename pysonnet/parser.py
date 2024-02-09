@@ -478,9 +478,9 @@ class Parser:
 
     def _parse_local_expression(self) -> Optional[ast.LocalExpression]:
         self.next_token()  # consume the 'local' token
-        binds: List[ast.LocalExpression.Bind] = []
+        binds: List[ast.Bind] = []
 
-        bind = self._parse_local_bind()
+        bind = self._parse_bind()
         if bind is None:
             return None
         binds.append(bind)
@@ -489,7 +489,7 @@ class Parser:
             self.next_token()
             if not self._expect_peek_type(TokenType.IDENT):
                 return None
-            bind = self._parse_local_bind()
+            bind = self._parse_bind()
             if bind is None:
                 return None
             binds.append(bind)
@@ -505,15 +505,18 @@ class Parser:
 
         return ast.LocalExpression(binds, expression)
 
-    def _parse_local_bind(self) -> Optional[ast.LocalExpression.Bind]:
+    def _parse_bind(self) -> Optional[ast.Bind]:
         name = ast.Identifier[Any](self._cur_token.literal)
         params: Optional[List[ast.Param]] = None
         if self._peek_token_type_is(TokenType.LPAREN):
             self.next_token()  # move to the '(' token
-            self.next_token()  # consume the '(' token
-            params = self._parse_params()
-            if not params:
-                return None
+            if self._peek_token_type_is(TokenType.RPAREN):
+                params = []
+            else:
+                self.next_token()  # consume the '(' token
+                params = self._parse_params()
+                if not params:
+                    return None
             if not self._expect_peek_type(TokenType.RPAREN):
                 return None
         if not self._expect_peek_type(TokenType.EQUAL):
@@ -524,18 +527,14 @@ class Parser:
             return None
         if params is not None:
             expression = ast.Function(params, expression)
-        return ast.LocalExpression.Bind(name, expression)
+        return ast.Bind(name, expression)
 
     def _parse_object_local(self) -> Optional[ast.ObjectLocal]:
         self.next_token()  # consume the 'local' token
-        ident = self._parse_identifier()
-        if not self._expect_peek_type(TokenType.EQUAL):
+        bind = self._parse_bind()
+        if not bind:
             return None
-        self.next_token()
-        expression = self._parse_expression(Precedence.LOWEST)
-        if expression is None:
-            return None
-        return ast.ObjectLocal(ident, expression)
+        return ast.ObjectLocal(bind)
 
     def _parse_object_field(self) -> Optional[ast.ObjectField]:
         key: ast.AST[str]

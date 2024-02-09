@@ -78,12 +78,13 @@ ComprehensionSpec = Union[ForSpec, IfSpec]
 
 
 @dataclasses.dataclass(frozen=True)
-class LocalExpression(Generic[_T_co], AST[_T_co]):
-    @dataclasses.dataclass(frozen=True)
-    class Bind(Generic[_T]):
-        ident: Identifier
-        expr: AST[_T]
+class Bind(Generic[_T]):
+    ident: Identifier
+    expr: AST[_T]
 
+
+@dataclasses.dataclass(frozen=True)
+class LocalExpression(Generic[_T_co], AST[_T_co]):
     binds: List[Bind]
     expr: AST[_T_co]
 
@@ -178,8 +179,7 @@ class ApplyBrace(AST[Dict[str, Any]]):
 
 @dataclasses.dataclass(frozen=True)
 class ObjectLocal(Generic[_T_co]):
-    ident: Identifier
-    expr: AST[_T_co]
+    bind: Bind[_T_co]
 
 
 @dataclasses.dataclass(frozen=True)
