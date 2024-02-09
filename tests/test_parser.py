@@ -11,6 +11,14 @@ from pysonnet.parser import Parser
 @pytest.mark.parametrize(
     "inputs,expected_expr",
     [
+        ("null", ast.Null(value=None)),
+        ("true", ast.Boolean(value=True)),
+        ("false", ast.Boolean(value=False)),
+        ("42", ast.Number(value=42)),
+        ("3.14", ast.Number(value=3.14)),
+        ('"hello"', ast.String(value="hello")),
+        ("{}", ast.Object([])),
+        ("[]", ast.Array[None]([])),
         (
             "{a: 123}",
             ast.Object([ast.ObjectField(ast.String("a"), ast.Number(123))]),
