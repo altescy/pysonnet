@@ -101,7 +101,7 @@ from pysonnet.parser import Parser
                 ],
                 ast.Array(
                     [
-                        ast.Binary(
+                        ast.Binary[dict](
                             ast.Binary.Operator.ADD,
                             ast.Identifier("obj"),
                             ast.Object(
@@ -253,6 +253,37 @@ from pysonnet.parser import Parser
                     ast.String("x must be even"),
                 ),
                 ast.Object([]),
+            ),
+        ),
+        (
+            """
+            {
+                a: if x % 2 == 0 then 'even' else 'odd',
+                [if flag then 'b']: 'optional',
+            }
+            """,
+            ast.Object(
+                [
+                    ast.ObjectField(
+                        ast.String("a"),
+                        ast.IfExpression(
+                            ast.Binary(
+                                ast.Binary.Operator.EQ,
+                                ast.Binary(ast.Binary.Operator.MOD, ast.Identifier("x"), ast.Number(2)),
+                                ast.Number(0),
+                            ),
+                            ast.String("even"),
+                            ast.String("odd"),
+                        ),
+                    ),
+                    ast.ObjectField(
+                        ast.IfExpression(
+                            ast.Identifier("flag"),
+                            ast.String("b"),
+                        ),
+                        ast.String("optional"),
+                    ),
+                ],
             ),
         ),
     ],

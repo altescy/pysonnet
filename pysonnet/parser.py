@@ -79,6 +79,7 @@ class Parser:
             TokenType.FUNCTION: self._parse_function,
             TokenType.ERROR: self._parse_error,
             TokenType.ASSERT: self._parse_assert_expression,
+            TokenType.IF: self._parse_if_expression,
         }
         self._infix_parsers: Dict[TokenType, Callable[[ast.AST], Optional[ast.AST]]] = {
             TokenType.PLUS: self._parse_binary,
@@ -202,6 +203,30 @@ class Parser:
         if expression is None:
             return None
         return ast.AssertExpression(assert_, expression)
+
+    def _parse_if_expression(self) -> Optional[ast.IfExpression]:
+        self.next_token()  # consume the 'if' token
+        condition = self._parse_expression(Precedence.LOWEST)
+        if not condition:
+            return None
+        if not self._expect_peek_type(TokenType.THEN):
+            return None
+
+        self.next_token()  # consume the 'then' token
+
+        then_expr = self._parse_expression(Precedence.LOWEST)
+        if not then_expr:
+            return None
+
+        else_expr: Optional[ast.AST] = None
+        if self._peek_token_type_is(TokenType.ELSE):
+            self.next_token()  # move to the 'else' token
+            self.next_token()  # consume the 'else' token
+            else_expr = self._parse_expression(Precedence.LOWEST)
+            if not else_expr:
+                return None
+
+        return ast.IfExpression(condition, then_expr, else_expr)
 
     def _parse_param(self) -> Optional[ast.Param]:
         ident = self._parse_identifier()

@@ -3,9 +3,11 @@ import dataclasses
 import enum
 from typing import Any, Callable, Dict, Generic, List, Literal, Optional, TypeVar, Union
 
-_T = TypeVar("_T")
-_T_co = TypeVar("_T_co", covariant=True)
-_Unknown = Any
+_PRIMITIVE = Union[str, int, float, bool, None, dict, list, Callable]
+_T = TypeVar("_T", bound=_PRIMITIVE)
+_S = TypeVar("_S", bound=_PRIMITIVE)
+_T_co = TypeVar("_T_co", covariant=True, bound=_PRIMITIVE)
+_S_co = TypeVar("_S_co", covariant=True, bound=_PRIMITIVE)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -44,7 +46,7 @@ class String(LiteralAST[str]):
 
 
 @dataclasses.dataclass(frozen=True)
-class Error(AST[_T_co]):
+class Error(Generic[_T_co], AST[_T_co]):
     expr: AST[_T_co]
 
 
@@ -52,6 +54,13 @@ class Error(AST[_T_co]):
 class Assert:
     condition: AST[bool]
     message: Optional[AST[Any]] = None
+
+
+@dataclasses.dataclass(frozen=True)
+class IfExpression(Generic[_T_co, _S_co], AST[Union[_T_co, _S_co, None]]):
+    condition: AST[bool]
+    then_expr: AST[_T_co]
+    else_expr: Optional[AST[_S_co]] = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -69,24 +78,24 @@ ComprehensionSpec = Union[ForSpec, IfSpec]
 
 
 @dataclasses.dataclass(frozen=True)
-class LocalExpression(AST[_T_co]):
+class LocalExpression(Generic[_T_co], AST[_T_co]):
     @dataclasses.dataclass(frozen=True)
     class Bind(Generic[_T]):
         ident: Identifier
         expr: AST[_T]
 
     binds: List[Bind]
-    expr: AST
+    expr: AST[_T_co]
 
 
 @dataclasses.dataclass(frozen=True)
-class AssertExpression(AST[_T_co]):
+class AssertExpression(Generic[_T_co], AST[_T_co]):
     assert_: Assert
     expr: AST[_T_co]
 
 
 @dataclasses.dataclass(frozen=True)
-class Unary(AST[_T_co]):
+class Unary(Generic[_T_co], AST[_T_co]):
     class Operator(enum.Enum):
         PLUS = enum.auto()
         MINUS = enum.auto()
@@ -98,7 +107,7 @@ class Unary(AST[_T_co]):
 
 
 @dataclasses.dataclass(frozen=True)
-class Binary(AST[_Unknown]):
+class Binary(Generic[_T_co], AST[_T_co]):
     class Operator(enum.Enum):
         ADD = enum.auto()
         SUB = enum.auto()
@@ -126,7 +135,7 @@ class Binary(AST[_Unknown]):
 
 
 @dataclasses.dataclass(frozen=True)
-class SuperIndex(AST[_Unknown]):
+class SuperIndex(Generic[_T_co], AST[_T_co]):
     key: AST[str]
 
 
@@ -143,7 +152,7 @@ class Function(Generic[_T_co], AST[Callable[..., _T_co]]):
 
 
 @dataclasses.dataclass(frozen=True)
-class Call(AST[_T_co]):
+class Call(Generic[_T_co], AST[_T_co]):
     callee: AST[Callable[..., _T_co]]
     args: List[AST]
     kwargs: Dict[Identifier, AST]
@@ -178,12 +187,12 @@ class Object(AST[Dict[str, Any]]):
 
 
 @dataclasses.dataclass(frozen=True)
-class Array(AST[List[_T_co]]):
+class Array(Generic[_T_co], AST[List[_T_co]]):
     elements: List[AST[_T_co]]
 
 
 @dataclasses.dataclass(frozen=True)
-class ArrayComprehension(AST[List[_T_co]]):
+class ArrayComprehension(Generic[_T_co], AST[List[_T_co]]):
     expression: AST[Any]
     forspec: ForSpec[_T_co]
     compspec: List[ComprehensionSpec]
