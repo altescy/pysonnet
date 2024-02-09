@@ -258,6 +258,20 @@ from pysonnet.parser import Parser
         (
             """
             {
+                assert flag,
+                x: 1,
+            }
+            """,
+            ast.Object(
+                [
+                    ast.Assert(ast.Identifier("flag")),
+                    ast.ObjectField(ast.String("x"), ast.Number(1)),
+                ],
+            ),
+        ),
+        (
+            """
+            {
                 a: if x % 2 == 0 then 'even' else 'odd',
                 [if flag then 'b']: 'optional',
             }

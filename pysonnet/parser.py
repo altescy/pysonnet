@@ -529,6 +529,8 @@ class Parser:
         member: Optional[ast.ObjectMember] = None
         if self._current_token_type_is(TokenType.LOCAL):
             member = self._parse_object_local()
+        elif self._current_token_type_is(TokenType.ASSERT):
+            member = self._parse_assert()
         elif (
             self._current_token_type_is(TokenType.IDENT)
             or self._current_token_type_is(TokenType.STRING)

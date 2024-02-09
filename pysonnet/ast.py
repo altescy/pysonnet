@@ -177,8 +177,7 @@ class ObjectField(Generic[_T]):
     visibility: Visibility = Visibility.VISIBLE
 
 
-# TODO: add assert statement
-ObjectMember = Union[ObjectField, ObjectLocal]
+ObjectMember = Union[ObjectField, ObjectLocal, Assert]
 
 
 @dataclasses.dataclass(frozen=True)
