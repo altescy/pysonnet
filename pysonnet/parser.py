@@ -332,7 +332,7 @@ class Parser:
             return None
         return ast.Unary(operator, expression)
 
-    def _parse_binary(self, left: ast.AST) -> Optional[ast.Binary]:
+    def _parse_binary(self, left: ast.AST) -> Optional[ast.AST]:
         operator: ast.Binary.Operator
         if self._current_token_type_is(TokenType.PLUS):
             operator = ast.Binary.Operator.ADD
@@ -381,17 +381,10 @@ class Parser:
                 ast.String(self._cur_token.literal),
             )
         elif self._current_token_type_is(TokenType.LBRACKET):
-            self.next_token()
-            index = self._parse_expression(Precedence.LOWEST)
-            if index is None:
+            expr = self._parse_index(left)
+            if expr is None:
                 return None
-            if not self._expect_peek_type(TokenType.RBRACKET):
-                return None
-            return ast.Binary(
-                ast.Binary.Operator.INDEX,
-                left,
-                index,
-            )
+            return expr
         else:
             self._errors.append(f"unknown binary operator: {self._cur_token.literal}")
             return None
@@ -401,6 +394,61 @@ class Parser:
         if not right:
             return None
         return ast.Binary(operator, left, right)
+
+    def _parse_index(self, indexable: ast.AST) -> Optional[ast.AST]:
+        if self._peek_token_type_is(TokenType.RBRACKET):
+            self._errors.append("index expression is empty")
+            return None
+        start: Optional[ast.AST] = None
+        end: Optional[ast.AST] = None
+        step: Optional[ast.AST] = None
+        if self._peek_token_type_is(TokenType.COLON):
+            self.next_token()
+        elif self._peek_token_type_is(TokenType.DCOLON):
+            pass
+        else:
+            self.next_token()
+            start = self._parse_expression(Precedence.LOWEST)
+            if start is None:
+                return None
+            if self._peek_token_type_is(TokenType.COLON):
+                self.next_token()
+        if self._peek_token_type_is(TokenType.DCOLON):
+            self.next_token()
+        elif self._peek_token_type_is(TokenType.RBRACKET):
+            pass
+        else:
+            self.next_token()
+            end = self._parse_expression(Precedence.LOWEST)
+            if not end:
+                return None
+            if self._peek_token_type_is(TokenType.COLON):
+                self.next_token()
+        if not self._peek_token_type_is(TokenType.RBRACKET):
+            self.next_token()
+            step = self._parse_expression(Precedence.LOWEST)
+            if not step:
+                return None
+        if not self._expect_peek_type(TokenType.RBRACKET):
+            return None
+        if not start and not end and not step:
+            return indexable
+        if start and not end and not step:
+            return ast.Binary(ast.Binary.Operator.INDEX, indexable, start)
+        return ast.Apply(
+            ast.Binary(
+                ast.Binary.Operator.INDEX,
+                ast.Identifier("std"),
+                ast.String("slice"),
+            ),
+            [
+                indexable,
+                start or ast.Null(),
+                end or ast.Null(),
+                step or ast.Null(),
+            ],
+            {},
+        )
 
     def _parse_expression(self, precedence: Precedence) -> Optional[ast.AST]:
         prefix = self._prefix_parsers.get(self._cur_token.token_type)
@@ -526,7 +574,8 @@ class Parser:
         elif self._peek_token_type_is(TokenType.TCOLON):
             visibility = ast.ObjectField.Visibility.FORCE_VISIBLE
         else:
-            self._errors.append("expected ':' or '::' or ':::', got {self._peek_token.token_type} instead")
+            print(self._lexer._textio.read())
+            self._errors.append(f"expected ':' or '::' or ':::', got {self._peek_token.token_type} instead")
             return None
 
         self.next_token()  # consume the separator token
