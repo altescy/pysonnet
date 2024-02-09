@@ -275,7 +275,6 @@ class Parser:
     def _parse_call_expression(self, function: ast.AST) -> Optional[ast.Call]:
         args: List[ast.AST] = []
         kwargs: Dict[ast.Identifier, ast.AST] = {}
-        print("parse call", self._peek_token)
         while not self._peek_token_type_is(TokenType.RPAREN):
             if kwargs:
                 if not self._expect_peek_type(TokenType.IDENT):
@@ -290,7 +289,6 @@ class Parser:
                 kwargs[ident] = expression
             else:
                 self.next_token()
-                print("parse args", self._cur_token)
                 if self._current_token_type_is(TokenType.IDENT) and self._peek_token_type_is(TokenType.EQUAL):
                     ident = self._parse_identifier()
                     if not self._expect_peek_type(TokenType.EQUAL):
@@ -690,6 +688,10 @@ class Parser:
             return None
         filename = self._cur_token.literal
         return ast.Importbin(filename)
+
+    @property
+    def errors(self) -> List[str]:
+        return self._errors
 
     def next_token(self) -> None:
         self._cur_token = self._peek_token
