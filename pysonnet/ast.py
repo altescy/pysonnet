@@ -8,75 +8,67 @@ _T_co = TypeVar("_T_co", covariant=True)
 
 
 @dataclasses.dataclass(frozen=True)
-class Node(abc.ABC):
+class AST(abc.ABC, Generic[_T_co]):
     ...
 
 
 @dataclasses.dataclass(frozen=True)
-class Statement(Node):
-    ...
-
-
-@dataclasses.dataclass(frozen=True)
-class Expression(Node, Generic[_T_co]):
-    ...
-
-
-@dataclasses.dataclass(frozen=True)
-class LiteralExpression(Expression[_T_co]):
+class LiteralAST(AST[_T_co]):
     value: _T_co
 
 
 @dataclasses.dataclass(frozen=True)
-class Identifier(Generic[_T_co], Expression[_T_co]):
+class Identifier(Generic[_T_co], AST[_T_co]):
     name: str
 
 
 @dataclasses.dataclass(frozen=True)
-class Null(LiteralExpression[Literal[None]]):
+class Null(LiteralAST[Literal[None]]):
     value: Literal[None] = None
 
 
 @dataclasses.dataclass(frozen=True)
-class Boolean(LiteralExpression[bool]):
+class Boolean(LiteralAST[bool]):
     ...
 
 
 @dataclasses.dataclass(frozen=True)
-class Number(LiteralExpression[Union[int, float]]):
+class Number(LiteralAST[Union[int, float]]):
     ...
 
 
 @dataclasses.dataclass(frozen=True)
-class String(LiteralExpression[str]):
+class String(LiteralAST[str]):
     ...
 
 
 @dataclasses.dataclass(frozen=True)
-class BindStatement(Generic[_T], Statement):
-    ident: Identifier
-    expr: Expression[_T]
+class ForSpec(Generic[_T_co]):
+    ident: Identifier[_T_co]
+    expr: AST[_T_co]
 
 
 @dataclasses.dataclass(frozen=True)
-class ForStatement(Generic[_T], Statement):
-    identifiler: Identifier[_T]
-    expression: Expression[List[_T]]
+class IfSpec:
+    condition: AST[bool]
+
+
+ComprehensionSpec = Union[ForSpec, IfSpec]
 
 
 @dataclasses.dataclass(frozen=True)
-class IfStatement(Statement):
-    condition: Expression[bool]
+class Local(AST[_T_co]):
+    @dataclasses.dataclass(frozen=True)
+    class Bind(Generic[_T]):
+        ident: Identifier
+        expr: AST[_T]
+
+    binds: List[Bind]
+    expr: AST
 
 
 @dataclasses.dataclass(frozen=True)
-class LocalExpression(Expression[_T_co]):
-    binds: List[BindStatement]
-    expr: Expression
-
-
-@dataclasses.dataclass(frozen=True)
-class UnaryExpression(Expression[_T_co]):
+class Unary(AST[_T_co]):
     class Operator(enum.Enum):
         PLUS = enum.auto()
         MINUS = enum.auto()
@@ -84,11 +76,11 @@ class UnaryExpression(Expression[_T_co]):
         BITWISE_NOT = enum.auto()
 
     operator: Operator
-    operand: Expression[_T_co]
+    operand: AST[_T_co]
 
 
 @dataclasses.dataclass(frozen=True)
-class BinaryExpression(Expression[_T_co]):
+class Binary(AST[_T_co]):
     class Operator(enum.Enum):
         ADD = enum.auto()
         SUB = enum.auto()
@@ -111,68 +103,69 @@ class BinaryExpression(Expression[_T_co]):
         INDEX = enum.auto()
 
     operator: Operator
-    left: Expression[_T_co]
-    right: Expression[_T_co]
+    left: AST[_T_co]
+    right: AST[_T_co]
 
 
 @dataclasses.dataclass(frozen=True)
-class SuperIndex(Expression[None]):
-    key: Expression[str]
+class SuperIndex(AST[Any]):
+    key: AST[str]
 
 
 @dataclasses.dataclass(frozen=True)
-class ParamStatement(Generic[_T_co], Statement):
+class Param(Generic[_T_co]):
     ident: Identifier
-    default: Optional[Expression[_T_co]] = None
+    default: Optional[AST[_T_co]] = None
 
 
 @dataclasses.dataclass(frozen=True)
-class Function(Generic[_T_co], Expression[Callable[..., _T_co]]):
-    params: List[ParamStatement]
-    expr: Expression[_T_co]
+class Function(Generic[_T_co], AST[Callable[..., _T_co]]):
+    params: List[Param]
+    expr: AST[_T_co]
 
 
 @dataclasses.dataclass(frozen=True)
-class Call(Expression[_T_co]):
-    callee: Expression[Callable[..., _T_co]]
-    args: List[Expression]
-    kwargs: Dict[Identifier, Expression]
+class Call(AST[_T_co]):
+    callee: AST[Callable[..., _T_co]]
+    args: List[AST]
+    kwargs: Dict[Identifier, AST]
 
 
 @dataclasses.dataclass(frozen=True)
-class ObjlocalStatement(Statement):
-    bind: BindStatement
+class ObjectLocal(Generic[_T_co]):
+    ident: Identifier
+    expr: AST[_T_co]
 
 
 @dataclasses.dataclass(frozen=True)
-class FieldStatement(Generic[_T], Statement):
+class ObjectField(Generic[_T]):
     class Visibility(enum.Enum):
         VISIBLE = enum.auto()
         HIDDEN = enum.auto()
         FORCE_VISIBLE = enum.auto()
 
-    key: Expression[Union[str, None]]
-    expr: Expression[_T]
+    key: AST[Union[str, None]]
+    expr: AST[_T]
     inherit: bool = False
     visibility: Visibility = Visibility.VISIBLE
 
 
 # TODO: add assert statement
-MemberStatement = Union[ObjlocalStatement, FieldStatement]
+ObjectMember = Union[ObjectField, ObjectLocal]
 
 
 @dataclasses.dataclass(frozen=True)
-class Object(Expression[Dict[str, Any]]):
-    members: List[MemberStatement]
+class Object(AST[Dict[str, Any]]):
+    members: List[ObjectMember]
 
 
 @dataclasses.dataclass(frozen=True)
-class Array(Expression[List[Any]]):
-    elements: List[Expression[Any]]
+class Array(AST[List[_T_co]]):
+    elements: List[AST[_T_co]]
 
 
 @dataclasses.dataclass(frozen=True)
-class ArrayComprehension(Expression[List[Any]]):
-    expression: Expression[Any]
-    forspec: ForStatement[Any]
-    compspec: List[Union[ForStatement, IfStatement]]
+class ArrayComprehension(AST[List[_T_co]]):
+    expression: AST[Any]
+    forspec: ForSpec[_T_co]
+    compspec: List[ComprehensionSpec]

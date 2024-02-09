@@ -60,7 +60,7 @@ class Parser:
 
         self._errors: List[str] = []
 
-        self._prefix_parsers: Dict[TokenType, Callable[[], Optional[ast.Expression]]] = {
+        self._prefix_parsers: Dict[TokenType, Callable[[], Optional[ast.AST]]] = {
             TokenType.NULL: self._parse_null,
             TokenType.TRUE: self._parse_boolean,
             TokenType.FALSE: self._parse_boolean,
@@ -70,36 +70,36 @@ class Parser:
             TokenType.LPAREN: self._parse_grouped_expression,
             TokenType.LBRACE: self._parse_object,
             TokenType.LBRACKET: self._parse_array,
-            TokenType.LOCAL: self._parse_local_expression,
-            TokenType.PLUS: self._parse_unary_expression,
-            TokenType.MINUS: self._parse_unary_expression,
-            TokenType.BANG: self._parse_unary_expression,
-            TokenType.TILDE: self._parse_unary_expression,
+            TokenType.LOCAL: self._parse_local,
+            TokenType.PLUS: self._parse_unary,
+            TokenType.MINUS: self._parse_unary,
+            TokenType.BANG: self._parse_unary,
+            TokenType.TILDE: self._parse_unary,
             TokenType.SUPER: self._parse_super,
             TokenType.FUNCTION: self._parse_function,
         }
-        self._infix_parsers: Dict[TokenType, Callable[[ast.Expression], Optional[ast.Expression]]] = {
-            TokenType.PLUS: self._parse_binary_expression,
-            TokenType.MINUS: self._parse_binary_expression,
-            TokenType.STAR: self._parse_binary_expression,
-            TokenType.SLASH: self._parse_binary_expression,
-            TokenType.MOD: self._parse_binary_expression,
-            TokenType.LAND: self._parse_binary_expression,
-            TokenType.LOR: self._parse_binary_expression,
-            TokenType.XOR: self._parse_binary_expression,
-            TokenType.LSHIFT: self._parse_binary_expression,
-            TokenType.RSHIFT: self._parse_binary_expression,
-            TokenType.AND: self._parse_binary_expression,
-            TokenType.OR: self._parse_binary_expression,
-            TokenType.EQEQ: self._parse_binary_expression,
-            TokenType.NEQ: self._parse_binary_expression,
-            TokenType.LT: self._parse_binary_expression,
-            TokenType.GT: self._parse_binary_expression,
-            TokenType.LE: self._parse_binary_expression,
-            TokenType.GE: self._parse_binary_expression,
-            TokenType.DOT: self._parse_binary_expression,
+        self._infix_parsers: Dict[TokenType, Callable[[ast.AST], Optional[ast.AST]]] = {
+            TokenType.PLUS: self._parse_binary,
+            TokenType.MINUS: self._parse_binary,
+            TokenType.STAR: self._parse_binary,
+            TokenType.SLASH: self._parse_binary,
+            TokenType.MOD: self._parse_binary,
+            TokenType.LAND: self._parse_binary,
+            TokenType.LOR: self._parse_binary,
+            TokenType.XOR: self._parse_binary,
+            TokenType.LSHIFT: self._parse_binary,
+            TokenType.RSHIFT: self._parse_binary,
+            TokenType.AND: self._parse_binary,
+            TokenType.OR: self._parse_binary,
+            TokenType.EQEQ: self._parse_binary,
+            TokenType.NEQ: self._parse_binary,
+            TokenType.LT: self._parse_binary,
+            TokenType.GT: self._parse_binary,
+            TokenType.LE: self._parse_binary,
+            TokenType.GE: self._parse_binary,
+            TokenType.DOT: self._parse_binary,
             TokenType.LPAREN: self._parse_call_expression,
-            TokenType.LBRACKET: self._parse_binary_expression,
+            TokenType.LBRACKET: self._parse_binary,
         }
 
     def _peek_error(self, token_type: TokenType) -> None:
@@ -144,7 +144,7 @@ class Parser:
     def _parse_identifier(self) -> ast.Identifier:
         return ast.Identifier(self._cur_token.literal)
 
-    def _parse_grouped_expression(self) -> Optional[ast.Expression]:
+    def _parse_grouped_expression(self) -> Optional[ast.AST]:
         self.next_token()  # consume the '(' token
         expression = self._parse_expression(Precedence.LOWEST)
         if not self._expect_peek_type(TokenType.RPAREN):
@@ -153,7 +153,7 @@ class Parser:
 
     def _parse_super(self) -> Optional[ast.SuperIndex]:
         self.next_token()  # consume the 'super' token
-        key: ast.Expression[str]
+        key: ast.AST[str]
         if self._current_token_type_is(TokenType.DOT):
             if not self._expect_peek_type(TokenType.IDENT):
                 return None
@@ -168,18 +168,18 @@ class Parser:
                 return None
         return ast.SuperIndex(key)
 
-    def _parse_param_statement(self) -> Optional[ast.ParamStatement]:
+    def _parse_param(self) -> Optional[ast.Param]:
         ident = self._parse_identifier()
-        default: Optional[ast.Expression] = None
+        default: Optional[ast.AST] = None
         if self._peek_token_type_is(TokenType.EQUAL):
             self.next_token()
             default = self._parse_expression(Precedence.LOWEST)
             if default is None:
                 return None
-        return ast.ParamStatement(ident, default)
+        return ast.Param(ident, default)
 
-    def _parse_params_statement(self) -> Optional[List[ast.ParamStatement]]:
-        param = self._parse_param_statement()
+    def _parse_params_statement(self) -> Optional[List[ast.Param]]:
+        param = self._parse_param()
         if param is None:
             return None
         params = [param]
@@ -188,7 +188,7 @@ class Parser:
             if not self._peek_token_type_is(TokenType.IDENT):
                 break
             self.next_token()
-            param = self._parse_param_statement()
+            param = self._parse_param()
             if param is None:
                 return None
             params.append(param)
@@ -209,9 +209,9 @@ class Parser:
             return None
         return ast.Function(params, expression)
 
-    def _parse_call_expression(self, function: ast.Expression) -> Optional[ast.Call]:
-        args: List[ast.Expression] = []
-        kwargs: Dict[ast.Identifier, ast.Expression] = {}
+    def _parse_call_expression(self, function: ast.AST) -> Optional[ast.Call]:
+        args: List[ast.AST] = []
+        kwargs: Dict[ast.Identifier, ast.AST] = {}
         print("parse call", self._peek_token)
         while not self._peek_token_type_is(TokenType.RPAREN):
             if kwargs:
@@ -248,16 +248,16 @@ class Parser:
             return None
         return ast.Call(function, args, kwargs)
 
-    def _parse_unary_expression(self) -> Optional[ast.UnaryExpression]:
-        operator: ast.UnaryExpression.Operator
+    def _parse_unary(self) -> Optional[ast.Unary]:
+        operator: ast.Unary.Operator
         if self._current_token_type_is(TokenType.PLUS):
-            operator = ast.UnaryExpression.Operator.PLUS
+            operator = ast.Unary.Operator.PLUS
         elif self._current_token_type_is(TokenType.MINUS):
-            operator = ast.UnaryExpression.Operator.MINUS
+            operator = ast.Unary.Operator.MINUS
         elif self._current_token_type_is(TokenType.BANG):
-            operator = ast.UnaryExpression.Operator.NOT
+            operator = ast.Unary.Operator.NOT
         elif self._current_token_type_is(TokenType.TILDE):
-            operator = ast.UnaryExpression.Operator.BITWISE_NOT
+            operator = ast.Unary.Operator.BITWISE_NOT
         else:
             self._errors.append(f"unknown unary operator: {self._cur_token.literal}")
             return None
@@ -265,51 +265,51 @@ class Parser:
         expression = self._parse_expression(Precedence.UNARY)
         if not expression:
             return None
-        return ast.UnaryExpression(operator, expression)
+        return ast.Unary(operator, expression)
 
-    def _parse_binary_expression(self, left: ast.Expression) -> Optional[ast.BinaryExpression]:
-        operator: ast.BinaryExpression.Operator
+    def _parse_binary(self, left: ast.AST) -> Optional[ast.Binary]:
+        operator: ast.Binary.Operator
         if self._current_token_type_is(TokenType.PLUS):
-            operator = ast.BinaryExpression.Operator.ADD
+            operator = ast.Binary.Operator.ADD
         elif self._current_token_type_is(TokenType.MINUS):
-            operator = ast.BinaryExpression.Operator.SUB
+            operator = ast.Binary.Operator.SUB
         elif self._current_token_type_is(TokenType.STAR):
-            operator = ast.BinaryExpression.Operator.MUL
+            operator = ast.Binary.Operator.MUL
         elif self._current_token_type_is(TokenType.SLASH):
-            operator = ast.BinaryExpression.Operator.DIV
+            operator = ast.Binary.Operator.DIV
         elif self._current_token_type_is(TokenType.MOD):
-            operator = ast.BinaryExpression.Operator.MOD
+            operator = ast.Binary.Operator.MOD
         elif self._current_token_type_is(TokenType.LAND):
-            operator = ast.BinaryExpression.Operator.BITWISE_AND
+            operator = ast.Binary.Operator.BITWISE_AND
         elif self._current_token_type_is(TokenType.LOR):
-            operator = ast.BinaryExpression.Operator.BITWISE_OR
+            operator = ast.Binary.Operator.BITWISE_OR
         elif self._current_token_type_is(TokenType.XOR):
-            operator = ast.BinaryExpression.Operator.BITWISE_XOR
+            operator = ast.Binary.Operator.BITWISE_XOR
         elif self._current_token_type_is(TokenType.LSHIFT):
-            operator = ast.BinaryExpression.Operator.LSHIFT
+            operator = ast.Binary.Operator.LSHIFT
         elif self._current_token_type_is(TokenType.RSHIFT):
-            operator = ast.BinaryExpression.Operator.RSHIFT
+            operator = ast.Binary.Operator.RSHIFT
         elif self._current_token_type_is(TokenType.AND):
-            operator = ast.BinaryExpression.Operator.AND
+            operator = ast.Binary.Operator.AND
         elif self._current_token_type_is(TokenType.OR):
-            operator = ast.BinaryExpression.Operator.OR
+            operator = ast.Binary.Operator.OR
         elif self._current_token_type_is(TokenType.EQEQ):
-            operator = ast.BinaryExpression.Operator.EQ
+            operator = ast.Binary.Operator.EQ
         elif self._current_token_type_is(TokenType.NEQ):
-            operator = ast.BinaryExpression.Operator.NE
+            operator = ast.Binary.Operator.NE
         elif self._current_token_type_is(TokenType.LT):
-            operator = ast.BinaryExpression.Operator.LT
+            operator = ast.Binary.Operator.LT
         elif self._current_token_type_is(TokenType.GT):
-            operator = ast.BinaryExpression.Operator.GT
+            operator = ast.Binary.Operator.GT
         elif self._current_token_type_is(TokenType.LE):
-            operator = ast.BinaryExpression.Operator.LE
+            operator = ast.Binary.Operator.LE
         elif self._current_token_type_is(TokenType.GE):
-            operator = ast.BinaryExpression.Operator.GE
+            operator = ast.Binary.Operator.GE
         elif self._current_token_type_is(TokenType.DOT):
             if not self._expect_peek_type(TokenType.IDENT):
                 return None
-            return ast.BinaryExpression(
-                ast.BinaryExpression.Operator.INDEX,
+            return ast.Binary(
+                ast.Binary.Operator.INDEX,
                 left,
                 ast.String(self._cur_token.literal),
             )
@@ -320,8 +320,8 @@ class Parser:
                 return None
             if not self._expect_peek_type(TokenType.RBRACKET):
                 return None
-            return ast.BinaryExpression(
-                ast.BinaryExpression.Operator.INDEX,
+            return ast.Binary(
+                ast.Binary.Operator.INDEX,
                 left,
                 index,
             )
@@ -333,9 +333,9 @@ class Parser:
         right = self._parse_expression(precedence)
         if not right:
             return None
-        return ast.BinaryExpression(operator, left, right)
+        return ast.Binary(operator, left, right)
 
-    def _parse_expression(self, precedence: Precedence) -> Optional[ast.Expression]:
+    def _parse_expression(self, precedence: Precedence) -> Optional[ast.AST]:
         prefix = self._prefix_parsers.get(self._cur_token.token_type)
         if prefix is None:
             self._errors.append(f"no prefix parse function for {self._cur_token.token_type}")
@@ -357,11 +357,11 @@ class Parser:
 
         return left
 
-    def _parse_local_expression(self) -> Optional[ast.LocalExpression]:
+    def _parse_local(self) -> Optional[ast.Local]:
         self.next_token()  # consume the 'local' token
-        binds: List[ast.BindStatement] = []
+        binds: List[ast.Local.Bind] = []
 
-        bind = self._parse_bind_statement()
+        bind = self._parse_local_bind()
         if bind is None:
             return None
         binds.append(bind)
@@ -370,7 +370,7 @@ class Parser:
             self.next_token()
             if not self._expect_peek_type(TokenType.IDENT):
                 return None
-            bind = self._parse_bind_statement()
+            bind = self._parse_local_bind()
             if bind is None:
                 return None
             binds.append(bind)
@@ -384,9 +384,9 @@ class Parser:
         if expression is None:
             return None
 
-        return ast.LocalExpression(binds, expression)
+        return ast.Local(binds, expression)
 
-    def _parse_bind_statement(self) -> Optional[ast.BindStatement]:
+    def _parse_local_bind(self) -> Optional[ast.Local.Bind]:
         name = ast.Identifier[Any](self._cur_token.literal)
         if self._peek_token_type_is(TokenType.LPAREN):
             raise NotImplementedError
@@ -397,20 +397,20 @@ class Parser:
         expression = self._parse_expression(Precedence.LOWEST)
         if expression is None:
             return None
-        return ast.BindStatement(name, expression)
+        return ast.Local.Bind(name, expression)
 
-    def _parse_objlocal_statement(self) -> Optional[ast.ObjlocalStatement]:
-        if not self._expect_peek_type(TokenType.IDENT):
+    def _parse_object_local(self) -> Optional[ast.ObjectLocal]:
+        ident = self._parse_identifier()
+        if not self._expect_peek_type(TokenType.EQUAL):
             return None
-        bind = self._parse_bind_statement()
-        if bind is None:
+        self.next_token()
+        expression = self._parse_expression(Precedence.LOWEST)
+        if expression is None:
             return None
-        if not self._expect_peek_type(TokenType.SEMICOLON):
-            return None
-        return ast.ObjlocalStatement(bind)
+        return ast.ObjectLocal(ident, expression)
 
-    def _parse_field_statement(self) -> Optional[ast.FieldStatement]:
-        key: ast.Expression[str]
+    def _parse_object_field(self) -> Optional[ast.ObjectField]:
+        key: ast.AST[str]
         if self._current_token_type_is(TokenType.IDENT):
             key = ast.String(self._cur_token.literal)
         elif self._current_token_type_is(TokenType.STRING):
@@ -427,7 +427,7 @@ class Parser:
             self._errors.append("invalid key")
             return None
 
-        params: Optional[List[ast.ParamStatement]] = None
+        params: Optional[List[ast.Param]] = None
         if self._peek_token_type_is(TokenType.LPAREN):
             self.next_token()
             self.next_token()
@@ -442,13 +442,13 @@ class Parser:
             inherit = True
             self.next_token()
 
-        visibility: ast.FieldStatement.Visibility
+        visibility: ast.ObjectField.Visibility
         if self._peek_token_type_is(TokenType.COLON):
-            visibility = ast.FieldStatement.Visibility.VISIBLE
+            visibility = ast.ObjectField.Visibility.VISIBLE
         elif self._peek_token_type_is(TokenType.DCOLON):
-            visibility = ast.FieldStatement.Visibility.HIDDEN
+            visibility = ast.ObjectField.Visibility.HIDDEN
         elif self._peek_token_type_is(TokenType.TCOLON):
-            visibility = ast.FieldStatement.Visibility.FORCE_VISIBLE
+            visibility = ast.ObjectField.Visibility.FORCE_VISIBLE
         else:
             self._errors.append("expected ':' or '::' or ':::', got {self._peek_token.token_type} instead")
             return None
@@ -463,25 +463,23 @@ class Parser:
         if params is not None:
             expression = ast.Function(params, expression)
 
-        return ast.FieldStatement(key, expression, inherit, visibility)
+        return ast.ObjectField(key, expression, inherit, visibility)
 
-    def _parse_member_statement(self) -> Optional[ast.MemberStatement]:
-        member: Optional[ast.MemberStatement]
+    def _parse_object_member(self) -> Optional[ast.ObjectMember]:
+        member: Optional[ast.ObjectMember] = None
         if self._current_token_type_is(TokenType.LOCAL):
-            member = self._parse_objlocal_statement()
+            member = self._parse_object_local()
         elif (
             self._current_token_type_is(TokenType.IDENT)
             or self._current_token_type_is(TokenType.STRING)
             or self._current_token_type_is(TokenType.LBRACKET)
         ):
-            member = self._parse_field_statement()
-        else:
-            member = None
+            member = self._parse_object_field()
         if member is None:
             return None
         return member
 
-    def _parse_for_statement(self) -> Optional[ast.ForStatement]:
+    def _parse_for_spec(self) -> Optional[ast.ForSpec]:
         self.next_token()  # consume the 'for' token
         identifier = self._parse_identifier()
         if not self._expect_peek_type(TokenType.IN):
@@ -490,20 +488,20 @@ class Parser:
         expression = self._parse_expression(Precedence.LOWEST)
         if expression is None:
             return None
-        return ast.ForStatement(identifier, expression)
+        return ast.ForSpec(identifier, expression)
 
-    def _parse_if_statement(self) -> Optional[ast.IfStatement]:
+    def _parse_if_spec(self) -> Optional[ast.IfSpec]:
         self.next_token()  # consume the 'if' token
         condition = self._parse_expression(Precedence.LOWEST)
         if condition is None:
             return None
-        return ast.IfStatement(condition)
+        return ast.IfSpec(condition)
 
     def _parse_object(self) -> Optional[ast.Object]:
-        members: List[ast.MemberStatement] = []
+        members: List[ast.ObjectMember] = []
         while not self._peek_token_type_is(TokenType.RBRACE):
             self.next_token()
-            member = self._parse_member_statement()
+            member = self._parse_object_member()
             if member is None:
                 return None
             members.append(member)
@@ -523,20 +521,20 @@ class Parser:
         # parse list comprehension
         if self._peek_token_type_is(TokenType.FOR):
             self.next_token()  # move to the 'for' token
-            forspec = self._parse_for_statement()
+            forspec = self._parse_for_spec()
             if forspec is None:
                 return None
-            compspec: List[Union[ast.ForStatement, ast.IfStatement]] = []
+            compspec: List[ast.ComprehensionSpec] = []
             while not self._peek_token_type_is(TokenType.RBRACKET):
                 if self._peek_token_type_is(TokenType.FOR):
                     self.next_token()
-                    forspec = self._parse_for_statement()
+                    forspec = self._parse_for_spec()
                     if forspec is None:
                         return None
                     compspec.append(forspec)
                 elif self._peek_token_type_is(TokenType.IF):
                     self.next_token()
-                    ifspec = self._parse_if_statement()
+                    ifspec = self._parse_if_spec()
                     if ifspec is None:
                         return None
                     compspec.append(ifspec)
@@ -548,7 +546,7 @@ class Parser:
             return ast.ArrayComprehension(first_expression, forspec, compspec)
 
         # parse array
-        elements: List[ast.Expression[Any]] = [first_expression]
+        elements: List[ast.AST[Any]] = [first_expression]
         if self._peek_token_type_is(TokenType.COMMA):
             self.next_token()  # consume the ',' token
         while not self._peek_token_type_is(TokenType.RBRACKET):
@@ -563,14 +561,9 @@ class Parser:
             return None
         return ast.Array(elements)
 
-    def _parse_statement(self) -> Optional[ast.Statement]:
-        if self._current_token_type_is(TokenType.LOCAL):
-            return self._parse_objlocal_statement()
-        return None
-
     def next_token(self) -> None:
         self._cur_token = self._peek_token
         self._peek_token = self._lexer.next_token()
 
-    def parse(self) -> Optional[ast.Expression]:
+    def parse(self) -> Optional[ast.AST]:
         return self._parse_expression(Precedence.LOWEST)
