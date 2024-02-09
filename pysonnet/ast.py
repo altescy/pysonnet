@@ -96,11 +96,11 @@ class AssertExpression(Generic[_T_co], AST[_T_co]):
 
 @dataclasses.dataclass(frozen=True)
 class Unary(Generic[_T_co], AST[_T_co]):
-    class Operator(enum.Enum):
-        PLUS = enum.auto()
-        MINUS = enum.auto()
-        NOT = enum.auto()
-        BITWISE_NOT = enum.auto()
+    class Operator(str, enum.Enum):
+        PLUS = "PLUS"
+        MINUS = "MINUS"
+        NOT = "NOT"
+        BITWISE_NOT = "BITWISE_NOT"
 
     operator: Operator
     operand: AST[_T_co]
@@ -108,26 +108,26 @@ class Unary(Generic[_T_co], AST[_T_co]):
 
 @dataclasses.dataclass(frozen=True)
 class Binary(Generic[_T_co], AST[_T_co]):
-    class Operator(enum.Enum):
-        ADD = enum.auto()
-        SUB = enum.auto()
-        MUL = enum.auto()
-        DIV = enum.auto()
-        MOD = enum.auto()
-        BITWISE_AND = enum.auto()
-        BITWISE_OR = enum.auto()
-        BITWISE_XOR = enum.auto()
-        LSHIFT = enum.auto()
-        RSHIFT = enum.auto()
-        AND = enum.auto()
-        OR = enum.auto()
-        EQ = enum.auto()
-        NE = enum.auto()
-        LT = enum.auto()
-        LE = enum.auto()
-        GT = enum.auto()
-        GE = enum.auto()
-        INDEX = enum.auto()
+    class Operator(str, enum.Enum):
+        ADD = "ADD"
+        SUB = "SUB"
+        MUL = "MUL"
+        DIV = "DIV"
+        MOD = "MOD"
+        BITWISE_AND = "BITWISE_AND"
+        BITWISE_OR = "BITWISE_OR"
+        BITWISE_XOR = "BITWISE_XOR"
+        LSHIFT = "LSHIFT"
+        RSHIFT = "RSHIFT"
+        AND = "AND"
+        OR = "OR"
+        EQ = "EQ"
+        NE = "NE"
+        LT = "LT"
+        LE = "LE"
+        GT = "GT"
+        GE = "GE"
+        INDEX = "INDEX"
 
     operator: Operator
     left: AST[Any]
@@ -166,10 +166,10 @@ class ObjectLocal(Generic[_T_co]):
 
 @dataclasses.dataclass(frozen=True)
 class ObjectField(Generic[_T_co]):
-    class Visibility(enum.Enum):
-        VISIBLE = enum.auto()
-        HIDDEN = enum.auto()
-        FORCE_VISIBLE = enum.auto()
+    class Visibility(str, enum.Enum):
+        VISIBLE = "VISIBLE"
+        HIDDEN = "HIDDEN"
+        FORCE_VISIBLE = "FORCE_VISIBLE"
 
     key: AST[Union[str, None]]
     expr: AST[_T_co]
