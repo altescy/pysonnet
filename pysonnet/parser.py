@@ -271,10 +271,10 @@ class Parser:
         return ast.Function(params, expression)
 
     def _parse_apply(self, function: ast.AST) -> Optional[ast.Apply]:
-        args: List[ast.AST] = []
-        kwargs: Dict[ast.Identifier, ast.AST] = {}
+        args: List[ast.Arg] = []
+        read_kwargs = False
         while not self._peek_token_type_is(TokenType.RPAREN):
-            if kwargs:
+            if read_kwargs:
                 if not self._expect_peek_type(TokenType.IDENT):
                     return None
                 ident = self._parse_identifier()
@@ -284,7 +284,7 @@ class Parser:
                 expression = self._parse_expression(Precedence.LOWEST)
                 if expression is None:
                     return None
-                kwargs[ident] = expression
+                args.append(ast.Arg(expression, ident))
             else:
                 self.next_token()
                 if self._current_token_type_is(TokenType.IDENT) and self._peek_token_type_is(TokenType.EQUAL):
@@ -295,12 +295,12 @@ class Parser:
                     expression = self._parse_expression(Precedence.LOWEST)
                     if expression is None:
                         return None
-                    kwargs[ident] = expression
+                    args.append(ast.Arg(expression, ident))
                 else:
                     expression = self._parse_expression(Precedence.LOWEST)
                     if expression is None:
                         return None
-                    args.append(expression)
+                    args.append(ast.Arg(expression))
             if self._peek_token_type_is(TokenType.COMMA):
                 self.next_token()
         if not self._expect_peek_type(TokenType.RPAREN):
@@ -309,7 +309,7 @@ class Parser:
         if self._peek_token_type_is(TokenType.TAILSTRICT):
             self.next_token()
             tailstrict = True
-        return ast.Apply(function, args, kwargs, tailstrict)
+        return ast.Apply(function, args, tailstrict)
 
     def _parse_apply_brace(self, left: ast.AST) -> Optional[ast.ApplyBrace]:
         right = self._parse_object()
@@ -446,12 +446,11 @@ class Parser:
                 ast.String("slice"),
             ),
             [
-                indexable,
-                start or ast.Null(),
-                end or ast.Null(),
-                step or ast.Null(),
+                ast.Arg(indexable),
+                ast.Arg(start or ast.Null()),
+                ast.Arg(end or ast.Null()),
+                ast.Arg(step or ast.Null()),
             ],
-            {},
         )
 
     def _parse_expression(self, precedence: Precedence) -> Optional[ast.AST]:

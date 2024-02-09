@@ -223,7 +223,7 @@ from pysonnet.parser import Parser
                     [
                         ast.ObjectField(
                             ast.String("a"),
-                            ast.Apply(ast.Identifier("f"), [ast.Number(1)], {}),
+                            ast.Apply(ast.Identifier("f"), [ast.Arg(ast.Number(1))]),
                         ),
                         ast.ObjectField(
                             ast.String("b"),
@@ -384,8 +384,7 @@ from pysonnet.parser import Parser
                         ast.Identifier("secret"),
                         ast.Apply(
                             ast.Binary(ast.Binary.Operator.INDEX, ast.Identifier("utils"), ast.String("store")),
-                            [ast.String("team"), ast.String("name")],
-                            {},
+                            [ast.Arg(ast.String("team")), ast.Arg(ast.String("name"))],
                         ),
                     )
                 ],
@@ -398,8 +397,7 @@ from pysonnet.parser import Parser
                                     ast.Binary(
                                         ast.Binary.Operator.INDEX, ast.Identifier("util"), ast.String("scheduler")
                                     ),
-                                    [ast.String("batch")],
-                                    {},
+                                    [ast.Arg(ast.String("batch"))],
                                 ),
                                 ast.Object([]),
                             ),
@@ -435,7 +433,7 @@ from pysonnet.parser import Parser
                         ast.ObjectField(
                             ast.String("a"),
                             ast.ApplyBrace(
-                                ast.Apply(ast.Identifier("f"), [ast.Number(1)], {}),
+                                ast.Apply(ast.Identifier("f"), [ast.Arg(ast.Number(1))]),
                                 ast.Object([ast.ObjectField(ast.String("x"), ast.Number(2))]),
                             ),
                         ),
@@ -554,12 +552,11 @@ from pysonnet.parser import Parser
             ast.Apply(
                 ast.Binary(ast.Binary.Operator.INDEX, ast.Identifier("std"), ast.String("slice")),
                 [
-                    ast.Identifier("a"),
-                    ast.Null(),
-                    ast.Number(2),
-                    ast.Null(),
+                    ast.Arg(ast.Identifier("a")),
+                    ast.Arg(ast.Null()),
+                    ast.Arg(ast.Number(2)),
+                    ast.Arg(ast.Null()),
                 ],
-                {},
             ),
         ),
         (
@@ -569,12 +566,11 @@ from pysonnet.parser import Parser
             ast.Apply(
                 ast.Binary(ast.Binary.Operator.INDEX, ast.Identifier("std"), ast.String("slice")),
                 [
-                    ast.Identifier("a"),
-                    ast.Null(),
-                    ast.Number(2),
-                    ast.Null(),
+                    ast.Arg(ast.Identifier("a")),
+                    ast.Arg(ast.Null()),
+                    ast.Arg(ast.Number(2)),
+                    ast.Arg(ast.Null()),
                 ],
-                {},
             ),
         ),
         (
@@ -584,12 +580,11 @@ from pysonnet.parser import Parser
             ast.Apply(
                 ast.Binary(ast.Binary.Operator.INDEX, ast.Identifier("std"), ast.String("slice")),
                 [
-                    ast.Identifier("a"),
-                    ast.Null(),
-                    ast.Null(),
-                    ast.Number(2),
+                    ast.Arg(ast.Identifier("a")),
+                    ast.Arg(ast.Null()),
+                    ast.Arg(ast.Null()),
+                    ast.Arg(ast.Number(2)),
                 ],
-                {},
             ),
         ),
         (
@@ -599,12 +594,11 @@ from pysonnet.parser import Parser
             ast.Apply(
                 ast.Binary(ast.Binary.Operator.INDEX, ast.Identifier("std"), ast.String("slice")),
                 [
-                    ast.Identifier("a"),
-                    ast.Number(1),
-                    ast.Number(10),
-                    ast.Number(2),
+                    ast.Arg(ast.Identifier("a")),
+                    ast.Arg(ast.Number(1)),
+                    ast.Arg(ast.Number(10)),
+                    ast.Arg(ast.Number(2)),
                 ],
-                {},
             ),
         ),
         (
@@ -632,7 +626,7 @@ from pysonnet.parser import Parser
                     ),
                     ast.ObjectField(
                         ast.String("z"),
-                        ast.Apply(ast.Identifier("a"), [], {}),
+                        ast.Apply(ast.Identifier("a"), []),
                     ),
                 ],
             ),
@@ -652,18 +646,20 @@ from pysonnet.parser import Parser
                     ast.Apply(
                         ast.Binary(ast.Binary.Operator.INDEX, ast.Identifier("std"), ast.String("range")),
                         [
-                            ast.Number(0),
-                            ast.Binary(
-                                ast.Binary.Operator.SUB,
-                                ast.Apply(
-                                    ast.Binary(ast.Binary.Operator.INDEX, ast.Identifier("std"), ast.String("length")),
-                                    [ast.Identifier("arr")],
-                                    {},
-                                ),
-                                ast.Number(1),
+                            ast.Arg(ast.Number(0)),
+                            ast.Arg(
+                                ast.Binary(
+                                    ast.Binary.Operator.SUB,
+                                    ast.Apply(
+                                        ast.Binary(
+                                            ast.Binary.Operator.INDEX, ast.Identifier("std"), ast.String("length")
+                                        ),
+                                        [ast.Arg(ast.Identifier("arr"))],
+                                    ),
+                                    ast.Number(1),
+                                )
                             ),
                         ],
-                        {},
                     ),
                 ),
                 [

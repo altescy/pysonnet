@@ -164,10 +164,15 @@ class Function(Generic[_T_co], AST[Callable[..., _T_co]]):
 
 
 @dataclasses.dataclass(frozen=True)
+class Arg(Generic[_T_co]):
+    expr: AST[_T_co]
+    ident: Optional[Identifier] = None
+
+
+@dataclasses.dataclass(frozen=True)
 class Apply(Generic[_T_co], AST[_T_co]):
     callee: AST[Callable[..., _T_co]]
-    args: List[AST]
-    kwargs: Dict[Identifier, AST]
+    args: List[Arg[Any]]
     tailstrict: bool = False
 
 
