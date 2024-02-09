@@ -232,7 +232,8 @@ class Parser:
         ident = self._parse_identifier()
         default: Optional[ast.AST] = None
         if self._peek_token_type_is(TokenType.EQUAL):
-            self.next_token()
+            self.next_token()  # move to the '=' token
+            self.next_token()  # consume the '=' token
             default = self._parse_expression(Precedence.LOWEST)
             if default is None:
                 return None

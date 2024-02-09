@@ -514,6 +514,25 @@ from pysonnet.parser import Parser
                 ),
             ),
         ),
+        (
+            """
+            {
+                foo(a, b=1):: a + b,
+            }
+            """,
+            ast.Object(
+                [
+                    ast.ObjectField(
+                        ast.String("foo"),
+                        ast.Function(
+                            [ast.Param(ast.Identifier("a")), ast.Param(ast.Identifier("b"), ast.Number(1))],
+                            ast.Binary(ast.Binary.Operator.ADD, ast.Identifier("a"), ast.Identifier("b")),
+                        ),
+                        visibility=ast.ObjectField.Visibility.HIDDEN,
+                    ),
+                ],
+            ),
+        ),
     ],
 )
 def test_object_expression(inputs: str, expected_expr: Any) -> None:
