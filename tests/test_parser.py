@@ -106,7 +106,7 @@ from pysonnet.parser import Parser
                                         ast.String("msg"),
                                         ast.BinaryExpression(
                                             ast.BinaryExpression.Operator.ADD,
-                                            ast.Super(ast.String("msg")),
+                                            ast.SuperIndex(ast.String("msg")),
                                             ast.String("!"),
                                         ),
                                     )

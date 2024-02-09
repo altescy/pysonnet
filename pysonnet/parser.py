@@ -151,7 +151,7 @@ class Parser:
             return None
         return expression
 
-    def _parse_super(self) -> Optional[ast.Super]:
+    def _parse_super(self) -> Optional[ast.SuperIndex]:
         self.next_token()  # consume the 'super' token
         key: ast.Expression[str]
         if self._current_token_type_is(TokenType.DOT):
@@ -166,7 +166,7 @@ class Parser:
             key = expression
             if not self._expect_peek_type(TokenType.RBRACKET):
                 return None
-        return ast.Super(key)
+        return ast.SuperIndex(key)
 
     def _parse_param_statement(self) -> Optional[ast.ParamStatement]:
         ident = self._parse_identifier()

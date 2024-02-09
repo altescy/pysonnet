@@ -116,7 +116,7 @@ class BinaryExpression(Expression[_T_co]):
 
 
 @dataclasses.dataclass(frozen=True)
-class Super(Expression[None]):
+class SuperIndex(Expression[None]):
     key: Expression[str]
 
 
