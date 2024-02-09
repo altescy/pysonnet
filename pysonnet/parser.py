@@ -272,7 +272,7 @@ class Parser:
             return None
         return ast.Function(params, expression)
 
-    def _parse_call_expression(self, function: ast.AST) -> Optional[ast.Call]:
+    def _parse_call_expression(self, function: ast.AST) -> Optional[ast.Apply]:
         args: List[ast.AST] = []
         kwargs: Dict[ast.Identifier, ast.AST] = {}
         while not self._peek_token_type_is(TokenType.RPAREN):
@@ -307,7 +307,7 @@ class Parser:
                 self.next_token()
         if not self._expect_peek_type(TokenType.RPAREN):
             return None
-        return ast.Call(function, args, kwargs)
+        return ast.Apply(function, args, kwargs)
 
     def _parse_unary(self) -> Optional[ast.Unary]:
         operator: ast.Unary.Operator

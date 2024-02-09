@@ -152,7 +152,7 @@ class Function(Generic[_T_co], AST[Callable[..., _T_co]]):
 
 
 @dataclasses.dataclass(frozen=True)
-class Call(Generic[_T_co], AST[_T_co]):
+class Apply(Generic[_T_co], AST[_T_co]):
     callee: AST[Callable[..., _T_co]]
     args: List[AST]
     kwargs: Dict[Identifier, AST]

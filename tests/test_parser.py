@@ -219,7 +219,7 @@ from pysonnet.parser import Parser
                     [
                         ast.ObjectField(
                             ast.String("a"),
-                            ast.Call(ast.Identifier("f"), [ast.Number(1)], {}),
+                            ast.Apply(ast.Identifier("f"), [ast.Number(1)], {}),
                         ),
                         ast.ObjectField(
                             ast.String("b"),
