@@ -127,6 +127,7 @@ class Binary(Generic[_T_co], AST[_T_co]):
         LE = "LE"
         GT = "GT"
         GE = "GE"
+        IN = "IN"
         INDEX = "INDEX"
 
     operator: Operator

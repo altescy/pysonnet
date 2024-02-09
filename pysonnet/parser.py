@@ -106,6 +106,7 @@ class Parser:
             TokenType.GT: self._parse_binary,
             TokenType.LE: self._parse_binary,
             TokenType.GE: self._parse_binary,
+            TokenType.IN: self._parse_binary,
             TokenType.DOT: self._parse_binary,
             TokenType.LBRACKET: self._parse_binary,
             TokenType.LPAREN: self._parse_apply,
@@ -382,6 +383,8 @@ class Parser:
             operator = ast.Binary.Operator.LE
         elif self._current_token_type_is(TokenType.GE):
             operator = ast.Binary.Operator.GE
+        elif self._current_token_type_is(TokenType.IN):
+            operator = ast.Binary.Operator.IN
         elif self._current_token_type_is(TokenType.DOT):
             if not self._expect_peek_type(TokenType.IDENT):
                 return None
