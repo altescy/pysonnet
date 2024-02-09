@@ -1,11 +1,11 @@
 import argparse
-import dataclasses
 import json
 import sys
 from io import StringIO
 from typing import List, Optional
 
 from pysonnet import __version__
+from pysonnet.ast import asdict
 from pysonnet.lexer import Lexer
 from pysonnet.parser import Parser
 
@@ -37,4 +37,4 @@ def main(prog: Optional[str] = None) -> None:
         sys.exit(1)
 
     if args.ast:
-        print(json.dumps(dataclasses.asdict(ast), indent=args.indent, ensure_ascii=args.ensure_ascii))
+        print(json.dumps(asdict(ast), indent=args.indent, ensure_ascii=args.ensure_ascii))

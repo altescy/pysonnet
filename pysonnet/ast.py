@@ -236,3 +236,18 @@ class Importstr(AST[str]):
 @dataclasses.dataclass(frozen=True)
 class Importbin(AST[List[int]]):
     filename: str
+
+
+def asdict(ast: AST) -> Dict[str, Any]:
+    d: Dict[str, Any] = {"__AST__": ast.__class__.__name__}
+    for field in dataclasses.fields(ast):
+        value = getattr(ast, field.name)
+        if dataclasses.is_dataclass(value):
+            d[field.name] = asdict(value)
+        elif isinstance(value, list):
+            d[field.name] = [asdict(x) if dataclasses.is_dataclass(x) else x for x in value]
+        elif isinstance(value, dict):
+            d[field.name] = {k: asdict(v) if dataclasses.is_dataclass(v) else v for k, v in value.items()}
+        else:
+            d[field.name] = value
+    return d
