@@ -439,6 +439,34 @@ from pysonnet.parser import Parser
                 ),
             ),
         ),
+        (
+            """
+            {
+                a: 1,
+                b: self.a,
+                c: { d: $.a }
+            }
+            """,
+            ast.Object(
+                [
+                    ast.ObjectField(ast.String("a"), ast.Number(1)),
+                    ast.ObjectField(
+                        ast.String("b"), ast.Binary(ast.Binary.Operator.INDEX, ast.Self(), ast.String("a"))
+                    ),
+                    ast.ObjectField(
+                        ast.String("c"),
+                        ast.Object(
+                            [
+                                ast.ObjectField(
+                                    ast.String("d"),
+                                    ast.Binary(ast.Binary.Operator.INDEX, ast.Dollar(), ast.String("a")),
+                                )
+                            ]
+                        ),
+                    ),
+                ],
+            ),
+        ),
     ],
 )
 def test_object_expression(inputs: str, expected_expr: Any) -> None:

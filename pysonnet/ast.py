@@ -135,7 +135,7 @@ class Binary(Generic[_T_co], AST[_T_co]):
 
 
 @dataclasses.dataclass(frozen=True)
-class Self(Dict[str, Any]):
+class Self(AST[Dict[str, Any]]):
     ...
 
 
