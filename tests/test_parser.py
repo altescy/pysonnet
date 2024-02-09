@@ -669,6 +669,19 @@ from pysonnet.parser import Parser
                 ],
             ),
         ),
+        (
+            """
+            local foo(x) = 42; foo(error "xxx") tailstrict
+            """,
+            ast.LocalExpression(
+                [ast.Bind(ast.Identifier("foo"), ast.Function([ast.Param(ast.Identifier("x"))], ast.Number(42)))],
+                ast.Apply(
+                    ast.Identifier("foo"),
+                    [ast.Arg(ast.Error(ast.String("xxx")))],
+                    tailstrict=True,
+                ),
+            ),
+        ),
     ],
 )
 def test_object_expression(inputs: str, expected_expr: Any) -> None:
