@@ -637,6 +637,42 @@ from pysonnet.parser import Parser
                 ],
             ),
         ),
+        (
+            """
+            [
+              arr[i],
+              for i in std.range(0, std.length(arr) - 1)
+              if i != at
+            ]
+            """,
+            ast.ArrayComprehension(
+                ast.Binary(ast.Binary.Operator.INDEX, ast.Identifier("arr"), ast.Identifier("i")),
+                ast.ForSpec(
+                    ast.Identifier("i"),
+                    ast.Apply(
+                        ast.Binary(ast.Binary.Operator.INDEX, ast.Identifier("std"), ast.String("range")),
+                        [
+                            ast.Number(0),
+                            ast.Binary(
+                                ast.Binary.Operator.SUB,
+                                ast.Apply(
+                                    ast.Binary(ast.Binary.Operator.INDEX, ast.Identifier("std"), ast.String("length")),
+                                    [ast.Identifier("arr")],
+                                    {},
+                                ),
+                                ast.Number(1),
+                            ),
+                        ],
+                        {},
+                    ),
+                ),
+                [
+                    ast.IfSpec(
+                        ast.Binary(ast.Binary.Operator.NE, ast.Identifier("i"), ast.Identifier("at")),
+                    )
+                ],
+            ),
+        ),
     ],
 )
 def test_object_expression(inputs: str, expected_expr: Any) -> None:

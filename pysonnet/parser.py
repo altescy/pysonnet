@@ -696,6 +696,9 @@ class Parser:
         if first_expression is None:
             return None
 
+        if self._peek_token_type_is(TokenType.COMMA):
+            self.next_token()
+
         # parse list comprehension
         if self._peek_token_type_is(TokenType.FOR):
             self.next_token()  # move to the 'for' token
