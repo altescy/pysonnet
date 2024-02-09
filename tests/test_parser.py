@@ -24,10 +24,10 @@ from pysonnet.parser import Parser
             local x = 1, y = "2";
             {a: x, b: [y, 3]}
             """,
-            ast.Local(
+            ast.LocalExpression(
                 [
-                    ast.Local.Bind(ast.Identifier("x"), ast.Number(1)),
-                    ast.Local.Bind(ast.Identifier("y"), ast.String("2")),
+                    ast.LocalExpression.Bind(ast.Identifier("x"), ast.Number(1)),
+                    ast.LocalExpression.Bind(ast.Identifier("y"), ast.String("2")),
                 ],
                 ast.Object(
                     [
@@ -42,8 +42,12 @@ from pysonnet.parser import Parser
             local xs = [1, 2, 3];
             [x for x in xs if !x]
             """,
-            ast.Local(
-                [ast.Local.Bind(ast.Identifier("xs"), ast.Array([ast.Number(1), ast.Number(2), ast.Number(3)]))],
+            ast.LocalExpression(
+                [
+                    ast.LocalExpression.Bind(
+                        ast.Identifier("xs"), ast.Array([ast.Number(1), ast.Number(2), ast.Number(3)])
+                    )
+                ],
                 ast.ArrayComprehension(
                     ast.Identifier("x"),
                     ast.ForSpec(ast.Identifier("x"), ast.Identifier("xs")),
@@ -88,9 +92,9 @@ from pysonnet.parser import Parser
             local obj = { msg: 'Hi' };
             [ obj + { msg: super.msg + '!' } ]
             """,
-            ast.Local(
+            ast.LocalExpression(
                 [
-                    ast.Local.Bind(
+                    ast.LocalExpression.Bind(
                         ast.Identifier("obj"),
                         ast.Object([ast.ObjectField(ast.String("msg"), ast.String("Hi"))]),
                     )
@@ -122,9 +126,9 @@ from pysonnet.parser import Parser
             local x = {y: 123}.y, z = [1, 2, 3][0];
             {a: x, b: z}
             """,
-            ast.Local(
+            ast.LocalExpression(
                 [
-                    ast.Local.Bind(
+                    ast.LocalExpression.Bind(
                         ast.Identifier("x"),
                         ast.Binary(
                             ast.Binary.Operator.INDEX,
@@ -132,7 +136,7 @@ from pysonnet.parser import Parser
                             ast.String("y"),
                         ),
                     ),
-                    ast.Local.Bind(
+                    ast.LocalExpression.Bind(
                         ast.Identifier("z"),
                         ast.Binary(
                             ast.Binary.Operator.INDEX,
@@ -201,9 +205,9 @@ from pysonnet.parser import Parser
             local f = function(x) x + 1;
             { a: f(1), b(x): x * x }
             """,
-            ast.Local(
+            ast.LocalExpression(
                 [
-                    ast.Local.Bind(
+                    ast.LocalExpression.Bind(
                         ast.Identifier("f"),
                         ast.Function(
                             [ast.Param(ast.Identifier("x"))],
@@ -226,6 +230,29 @@ from pysonnet.parser import Parser
                         ),
                     ]
                 ),
+            ),
+        ),
+        (
+            """
+            error 'fail'
+            """,
+            ast.Error(ast.String("fail")),
+        ),
+        (
+            """
+            assert x % 2 == 0 : 'x must be even';
+            {}
+            """,
+            ast.AssertExpression(
+                ast.Assert(
+                    ast.Binary(
+                        ast.Binary.Operator.EQ,
+                        ast.Binary(ast.Binary.Operator.MOD, ast.Identifier("x"), ast.Number(2)),
+                        ast.Number(0),
+                    ),
+                    ast.String("x must be even"),
+                ),
+                ast.Object([]),
             ),
         ),
     ],

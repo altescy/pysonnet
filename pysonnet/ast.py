@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, Generic, List, Literal, Optional, TypeVa
 
 _T = TypeVar("_T")
 _T_co = TypeVar("_T_co", covariant=True)
+_Unknown = Any
 
 
 @dataclasses.dataclass(frozen=True)
@@ -43,6 +44,17 @@ class String(LiteralAST[str]):
 
 
 @dataclasses.dataclass(frozen=True)
+class Error(AST[_T_co]):
+    expr: AST[_T_co]
+
+
+@dataclasses.dataclass(frozen=True)
+class Assert:
+    condition: AST[bool]
+    message: Optional[AST[Any]] = None
+
+
+@dataclasses.dataclass(frozen=True)
 class ForSpec(Generic[_T_co]):
     ident: Identifier[_T_co]
     expr: AST[_T_co]
@@ -57,7 +69,7 @@ ComprehensionSpec = Union[ForSpec, IfSpec]
 
 
 @dataclasses.dataclass(frozen=True)
-class Local(AST[_T_co]):
+class LocalExpression(AST[_T_co]):
     @dataclasses.dataclass(frozen=True)
     class Bind(Generic[_T]):
         ident: Identifier
@@ -65,6 +77,12 @@ class Local(AST[_T_co]):
 
     binds: List[Bind]
     expr: AST
+
+
+@dataclasses.dataclass(frozen=True)
+class AssertExpression(AST[_T_co]):
+    assert_: Assert
+    expr: AST[_T_co]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -80,7 +98,7 @@ class Unary(AST[_T_co]):
 
 
 @dataclasses.dataclass(frozen=True)
-class Binary(AST[_T_co]):
+class Binary(AST[_Unknown]):
     class Operator(enum.Enum):
         ADD = enum.auto()
         SUB = enum.auto()
@@ -103,12 +121,12 @@ class Binary(AST[_T_co]):
         INDEX = enum.auto()
 
     operator: Operator
-    left: AST[_T_co]
-    right: AST[_T_co]
+    left: AST[Any]
+    right: AST[Any]
 
 
 @dataclasses.dataclass(frozen=True)
-class SuperIndex(AST[Any]):
+class SuperIndex(AST[_Unknown]):
     key: AST[str]
 
 

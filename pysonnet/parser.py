@@ -70,13 +70,15 @@ class Parser:
             TokenType.LPAREN: self._parse_grouped_expression,
             TokenType.LBRACE: self._parse_object,
             TokenType.LBRACKET: self._parse_array,
-            TokenType.LOCAL: self._parse_local,
+            TokenType.LOCAL: self._parse_local_expression,
             TokenType.PLUS: self._parse_unary,
             TokenType.MINUS: self._parse_unary,
             TokenType.BANG: self._parse_unary,
             TokenType.TILDE: self._parse_unary,
             TokenType.SUPER: self._parse_super,
             TokenType.FUNCTION: self._parse_function,
+            TokenType.ERROR: self._parse_error,
+            TokenType.ASSERT: self._parse_assert_expression,
         }
         self._infix_parsers: Dict[TokenType, Callable[[ast.AST], Optional[ast.AST]]] = {
             TokenType.PLUS: self._parse_binary,
@@ -167,6 +169,39 @@ class Parser:
             if not self._expect_peek_type(TokenType.RBRACKET):
                 return None
         return ast.SuperIndex(key)
+
+    def _parse_error(self) -> Optional[ast.Error]:
+        self.next_token()  # consume the 'error' token
+        expression = self._parse_expression(Precedence.LOWEST)
+        if expression is None:
+            return None
+        return ast.Error(expression)
+
+    def _parse_assert(self) -> Optional[ast.Assert]:
+        self.next_token()  # consume the 'assert' token
+        condition = self._parse_expression(Precedence.LOWEST)
+        if condition is None:
+            return None
+        message: Optional[ast.AST] = None
+        if self._peek_token_type_is(TokenType.COLON):
+            self.next_token()  # consume the ':' token
+            self.next_token()  # move to the message
+            message = self._parse_expression(Precedence.LOWEST)
+            if message is None:
+                return None
+        return ast.Assert(condition, message)
+
+    def _parse_assert_expression(self) -> Optional[ast.AssertExpression]:
+        assert_ = self._parse_assert()
+        if not assert_:
+            return None
+        if not self._expect_peek_type(TokenType.SEMICOLON):
+            return None
+        self.next_token()
+        expression = self._parse_expression(Precedence.LOWEST)
+        if expression is None:
+            return None
+        return ast.AssertExpression(assert_, expression)
 
     def _parse_param(self) -> Optional[ast.Param]:
         ident = self._parse_identifier()
@@ -357,9 +392,9 @@ class Parser:
 
         return left
 
-    def _parse_local(self) -> Optional[ast.Local]:
+    def _parse_local_expression(self) -> Optional[ast.LocalExpression]:
         self.next_token()  # consume the 'local' token
-        binds: List[ast.Local.Bind] = []
+        binds: List[ast.LocalExpression.Bind] = []
 
         bind = self._parse_local_bind()
         if bind is None:
@@ -384,9 +419,9 @@ class Parser:
         if expression is None:
             return None
 
-        return ast.Local(binds, expression)
+        return ast.LocalExpression(binds, expression)
 
-    def _parse_local_bind(self) -> Optional[ast.Local.Bind]:
+    def _parse_local_bind(self) -> Optional[ast.LocalExpression.Bind]:
         name = ast.Identifier[Any](self._cur_token.literal)
         if self._peek_token_type_is(TokenType.LPAREN):
             raise NotImplementedError
@@ -397,7 +432,7 @@ class Parser:
         expression = self._parse_expression(Precedence.LOWEST)
         if expression is None:
             return None
-        return ast.Local.Bind(name, expression)
+        return ast.LocalExpression.Bind(name, expression)
 
     def _parse_object_local(self) -> Optional[ast.ObjectLocal]:
         ident = self._parse_identifier()
