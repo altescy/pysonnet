@@ -80,6 +80,9 @@ class Parser:
             TokenType.ERROR: self._parse_error,
             TokenType.ASSERT: self._parse_assert_expression,
             TokenType.IF: self._parse_if_expression,
+            TokenType.IMPORT: self._parse_import,
+            TokenType.IMPORTSTR: self._parse_importstr,
+            TokenType.IMPORTBIN: self._parse_importbin,
         }
         self._infix_parsers: Dict[TokenType, Callable[[ast.AST], Optional[ast.AST]]] = {
             TokenType.PLUS: self._parse_binary,
@@ -669,6 +672,24 @@ class Parser:
         if not self._expect_peek_type(TokenType.RBRACKET):
             return None
         return ast.Array(elements)
+
+    def _parse_import(self) -> Optional[ast.Import]:
+        if not self._expect_peek_type(TokenType.STRING):
+            return None
+        filename = self._cur_token.literal
+        return ast.Import(filename)
+
+    def _parse_importstr(self) -> Optional[ast.Importstr]:
+        if not self._expect_peek_type(TokenType.STRING):
+            return None
+        filename = self._cur_token.literal
+        return ast.Importstr(filename)
+
+    def _parse_importbin(self) -> Optional[ast.Importbin]:
+        if not self._expect_peek_type(TokenType.STRING):
+            return None
+        filename = self._cur_token.literal
+        return ast.Importbin(filename)
 
     def next_token(self) -> None:
         self._cur_token = self._peek_token

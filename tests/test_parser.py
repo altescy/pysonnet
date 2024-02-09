@@ -336,6 +336,24 @@ from pysonnet.parser import Parser
                 ],
             ),
         ),
+        (
+            """
+            local
+                lib = import "lib.jsonnet"
+                , text = importstr "body.txt"
+                , bin = importbin "some.bin"
+            ;
+            {}
+            """,
+            ast.LocalExpression(
+                [
+                    ast.LocalExpression.Bind(ast.Identifier("lib"), ast.Import("lib.jsonnet")),
+                    ast.LocalExpression.Bind(ast.Identifier("text"), ast.Importstr("body.txt")),
+                    ast.LocalExpression.Bind(ast.Identifier("bin"), ast.Importbin("some.bin")),
+                ],
+                ast.Object([]),
+            ),
+        ),
     ],
 )
 def test_object_expression(inputs: str, expected_expr: Any) -> None:

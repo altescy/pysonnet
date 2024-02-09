@@ -204,3 +204,18 @@ class ArrayComprehension(Generic[_T_co], AST[List[_T_co]]):
     expression: AST[Any]
     forspec: ForSpec[_T_co]
     compspecs: List[ComprehensionSpec]
+
+
+@dataclasses.dataclass(frozen=True)
+class Import(AST[Any]):
+    filename: str
+
+
+@dataclasses.dataclass(frozen=True)
+class Importstr(AST[Any]):
+    filename: str
+
+
+@dataclasses.dataclass(frozen=True)
+class Importbin(AST[Any]):
+    filename: str
