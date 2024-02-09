@@ -49,6 +49,7 @@ _BINARY_PRECEDENCE = {
     TokenType.LBRACKET: Precedence.INDEX,
     TokenType.LPAREN: Precedence.INDEX,
     TokenType.DOT: Precedence.INDEX,
+    TokenType.LBRACE: Precedence.SUM,
 }
 
 
@@ -104,8 +105,9 @@ class Parser:
             TokenType.LE: self._parse_binary,
             TokenType.GE: self._parse_binary,
             TokenType.DOT: self._parse_binary,
-            TokenType.LPAREN: self._parse_call_expression,
             TokenType.LBRACKET: self._parse_binary,
+            TokenType.LPAREN: self._parse_apply,
+            TokenType.LBRACE: self._parse_apply_brace,
         }
 
     def _peek_error(self, token_type: TokenType) -> None:
@@ -241,7 +243,7 @@ class Parser:
                 return None
         return ast.Param(ident, default)
 
-    def _parse_params_statement(self) -> Optional[List[ast.Param]]:
+    def _parse_params(self) -> Optional[List[ast.Param]]:
         param = self._parse_param()
         if param is None:
             return None
@@ -261,7 +263,7 @@ class Parser:
         if not self._expect_peek_type(TokenType.LPAREN):
             return None
         self.next_token()
-        params = self._parse_params_statement()
+        params = self._parse_params()
         if params is None:
             return None
         if not self._expect_peek_type(TokenType.RPAREN):
@@ -272,7 +274,7 @@ class Parser:
             return None
         return ast.Function(params, expression)
 
-    def _parse_call_expression(self, function: ast.AST) -> Optional[ast.Apply]:
+    def _parse_apply(self, function: ast.AST) -> Optional[ast.Apply]:
         args: List[ast.AST] = []
         kwargs: Dict[ast.Identifier, ast.AST] = {}
         while not self._peek_token_type_is(TokenType.RPAREN):
@@ -308,6 +310,12 @@ class Parser:
         if not self._expect_peek_type(TokenType.RPAREN):
             return None
         return ast.Apply(function, args, kwargs)
+
+    def _parse_apply_brace(self, left: ast.AST) -> Optional[ast.ApplyBrace]:
+        right = self._parse_object()
+        if right is None:
+            return None
+        return ast.ApplyBrace(left, right)
 
     def _parse_unary(self) -> Optional[ast.Unary]:
         operator: ast.Unary.Operator
@@ -449,15 +457,23 @@ class Parser:
 
     def _parse_local_bind(self) -> Optional[ast.LocalExpression.Bind]:
         name = ast.Identifier[Any](self._cur_token.literal)
+        params: Optional[List[ast.Param]] = None
         if self._peek_token_type_is(TokenType.LPAREN):
-            raise NotImplementedError
+            self.next_token()  # move to the '(' token
+            self.next_token()  # consume the '(' token
+            params = self._parse_params()
+            if not params:
+                return None
+            if not self._expect_peek_type(TokenType.RPAREN):
+                return None
         if not self._expect_peek_type(TokenType.EQUAL):
-            self._errors.append("expected '=' after identifier")
             return None
         self.next_token()  # consume the '=' token
         expression = self._parse_expression(Precedence.LOWEST)
         if expression is None:
             return None
+        if params is not None:
+            expression = ast.Function(params, expression)
         return ast.LocalExpression.Bind(name, expression)
 
     def _parse_object_local(self) -> Optional[ast.ObjectLocal]:
@@ -493,7 +509,7 @@ class Parser:
         if self._peek_token_type_is(TokenType.LPAREN):
             self.next_token()
             self.next_token()
-            params = self._parse_params_statement()
+            params = self._parse_params()
             if params is None:
                 return None
             if not self._expect_peek_type(TokenType.RPAREN):

@@ -354,10 +354,95 @@ from pysonnet.parser import Parser
                 ast.Object([]),
             ),
         ),
+        (
+            """
+            { a: 1, b: 2 } { b: 3, c: 4 }
+            """,
+            ast.ApplyBrace(
+                ast.Object(
+                    [ast.ObjectField(ast.String("a"), ast.Number(1)), ast.ObjectField(ast.String("b"), ast.Number(2))]
+                ),
+                ast.Object(
+                    [ast.ObjectField(ast.String("b"), ast.Number(3)), ast.ObjectField(ast.String("c"), ast.Number(4))]
+                ),
+            ),
+        ),
+        (
+            """
+            local secret = utils.store('team', 'name');
+            {
+                scheduler: util.scheduler('batch') {},
+            }
+            """,
+            ast.LocalExpression(
+                [
+                    ast.LocalExpression.Bind(
+                        ast.Identifier("secret"),
+                        ast.Apply(
+                            ast.Binary(ast.Binary.Operator.INDEX, ast.Identifier("utils"), ast.String("store")),
+                            [ast.String("team"), ast.String("name")],
+                            {},
+                        ),
+                    )
+                ],
+                ast.Object(
+                    [
+                        ast.ObjectField(
+                            ast.String("scheduler"),
+                            ast.ApplyBrace(
+                                ast.Apply(
+                                    ast.Binary(
+                                        ast.Binary.Operator.INDEX, ast.Identifier("util"), ast.String("scheduler")
+                                    ),
+                                    [ast.String("batch")],
+                                    {},
+                                ),
+                                ast.Object([]),
+                            ),
+                        ),
+                    ]
+                ),
+            ),
+        ),
+        (
+            """
+            local f(x) = { a: x + 1 };
+            { a: f(1) { x: 2 } }
+            """,
+            ast.LocalExpression(
+                [
+                    ast.LocalExpression.Bind(
+                        ast.Identifier("f"),
+                        ast.Function(
+                            [ast.Param(ast.Identifier("x"))],
+                            ast.Object(
+                                [
+                                    ast.ObjectField(
+                                        ast.String("a"),
+                                        ast.Binary(ast.Binary.Operator.ADD, ast.Identifier("x"), ast.Number(1)),
+                                    )
+                                ]
+                            ),
+                        ),
+                    ),
+                ],
+                ast.Object(
+                    [
+                        ast.ObjectField(
+                            ast.String("a"),
+                            ast.ApplyBrace(
+                                ast.Apply(ast.Identifier("f"), [ast.Number(1)], {}),
+                                ast.Object([ast.ObjectField(ast.String("x"), ast.Number(2))]),
+                            ),
+                        ),
+                    ]
+                ),
+            ),
+        ),
     ],
 )
 def test_object_expression(inputs: str, expected_expr: Any) -> None:
     parser = Parser(Lexer(StringIO(inputs)))
     statement = parser.parse()
-    print(parser._errors)
+    print(parser.errors)
     assert statement == expected_expr

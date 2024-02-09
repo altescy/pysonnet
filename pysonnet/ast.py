@@ -159,6 +159,12 @@ class Apply(Generic[_T_co], AST[_T_co]):
 
 
 @dataclasses.dataclass(frozen=True)
+class ApplyBrace(AST[Dict[str, Any]]):
+    left: AST[Dict[str, Any]]
+    right: AST[Dict[str, Any]]
+
+
+@dataclasses.dataclass(frozen=True)
 class ObjectLocal(Generic[_T_co]):
     ident: Identifier
     expr: AST[_T_co]
