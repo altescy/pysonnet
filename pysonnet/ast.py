@@ -218,10 +218,10 @@ class Import(AST[Any]):
 
 
 @dataclasses.dataclass(frozen=True)
-class Importstr(AST[Any]):
+class Importstr(AST[str]):
     filename: str
 
 
 @dataclasses.dataclass(frozen=True)
-class Importbin(AST[Any]):
+class Importbin(AST[List[int]]):
     filename: str
