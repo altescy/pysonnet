@@ -165,14 +165,14 @@ class ObjectLocal(Generic[_T_co]):
 
 
 @dataclasses.dataclass(frozen=True)
-class ObjectField(Generic[_T]):
+class ObjectField(Generic[_T_co]):
     class Visibility(enum.Enum):
         VISIBLE = enum.auto()
         HIDDEN = enum.auto()
         FORCE_VISIBLE = enum.auto()
 
     key: AST[Union[str, None]]
-    expr: AST[_T]
+    expr: AST[_T_co]
     inherit: bool = False
     visibility: Visibility = Visibility.VISIBLE
 
