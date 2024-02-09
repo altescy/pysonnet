@@ -635,8 +635,11 @@ class Parser:
         return ast.Object(members)
 
     def _parse_array(self) -> Optional[Union[ast.Array, ast.ArrayComprehension]]:
-        self.next_token()  # consume the '[' token
+        if self._peek_token_type_is(TokenType.RBRACKET):
+            self.next_token()
+            return ast.Array([])
 
+        self.next_token()  # consume the '[' token
         first_expression = self._parse_expression(Precedence.LOWEST)
         if first_expression is None:
             return None
