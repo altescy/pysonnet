@@ -533,6 +533,84 @@ from pysonnet.parser import Parser
                 ],
             ),
         ),
+        (
+            """
+            a["x"]
+            """,
+            ast.Binary(ast.Binary.Operator.INDEX, ast.Identifier("a"), ast.String("x")),
+        ),
+        (
+            """
+            a.x
+            """,
+            ast.Binary(ast.Binary.Operator.INDEX, ast.Identifier("a"), ast.String("x")),
+        ),
+        (
+            """
+            a[::]
+            """,
+            ast.Identifier("a"),
+        ),
+        (
+            """
+            a[:2]
+            """,
+            ast.Apply(
+                ast.Binary(ast.Binary.Operator.INDEX, ast.Identifier("std"), ast.String("slice")),
+                [
+                    ast.Identifier("a"),
+                    ast.Null(),
+                    ast.Number(2),
+                    ast.Null(),
+                ],
+                {},
+            ),
+        ),
+        (
+            """
+            a[:2:]
+            """,
+            ast.Apply(
+                ast.Binary(ast.Binary.Operator.INDEX, ast.Identifier("std"), ast.String("slice")),
+                [
+                    ast.Identifier("a"),
+                    ast.Null(),
+                    ast.Number(2),
+                    ast.Null(),
+                ],
+                {},
+            ),
+        ),
+        (
+            """
+            a[::2]
+            """,
+            ast.Apply(
+                ast.Binary(ast.Binary.Operator.INDEX, ast.Identifier("std"), ast.String("slice")),
+                [
+                    ast.Identifier("a"),
+                    ast.Null(),
+                    ast.Null(),
+                    ast.Number(2),
+                ],
+                {},
+            ),
+        ),
+        (
+            """
+            a[1:10:2]
+            """,
+            ast.Apply(
+                ast.Binary(ast.Binary.Operator.INDEX, ast.Identifier("std"), ast.String("slice")),
+                [
+                    ast.Identifier("a"),
+                    ast.Number(1),
+                    ast.Number(10),
+                    ast.Number(2),
+                ],
+                {},
+            ),
+        ),
     ],
 )
 def test_object_expression(inputs: str, expected_expr: Any) -> None:
