@@ -32,7 +32,7 @@ class Lexer:
         self._read_char()
         while True:
             if self._ch == "":
-                raise ValueError("unexpected end of file")
+                break
             if self._ch in _IDENT_CONT:
                 literal += self._ch
                 self._read_char()
