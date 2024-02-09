@@ -305,7 +305,11 @@ class Parser:
                 self.next_token()
         if not self._expect_peek_type(TokenType.RPAREN):
             return None
-        return ast.Apply(function, args, kwargs)
+        tailstrict = False
+        if self._peek_token_type_is(TokenType.TAILSTRICT):
+            self.next_token()
+            tailstrict = True
+        return ast.Apply(function, args, kwargs, tailstrict)
 
     def _parse_apply_brace(self, left: ast.AST) -> Optional[ast.ApplyBrace]:
         right = self._parse_object()
@@ -574,7 +578,6 @@ class Parser:
         elif self._peek_token_type_is(TokenType.TCOLON):
             visibility = ast.ObjectField.Visibility.FORCE_VISIBLE
         else:
-            print(self._lexer._textio.read())
             self._errors.append(f"expected ':' or '::' or ':::', got {self._peek_token.token_type} instead")
             return None
 

@@ -167,6 +167,7 @@ class Apply(Generic[_T_co], AST[_T_co]):
     callee: AST[Callable[..., _T_co]]
     args: List[AST]
     kwargs: Dict[Identifier, AST]
+    tailstrict: bool = False
 
 
 @dataclasses.dataclass(frozen=True)

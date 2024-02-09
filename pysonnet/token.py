@@ -68,6 +68,7 @@ class TokenType(Enum):
     IMPORTSTR = "IMPORTSTR"
     IMPORTBIN = "IMPORTBIN"
     DOLLAR = "DOLLAR"
+    TAILSTRICT = "TAILSTRICT"
 
 
 _KEYWORDS = {
@@ -88,6 +89,7 @@ _KEYWORDS = {
     "import": TokenType.IMPORT,
     "importstr": TokenType.IMPORTSTR,
     "importbin": TokenType.IMPORTBIN,
+    "tailstrict": TokenType.TAILSTRICT,
 }
 
 _HIDDEN = {
