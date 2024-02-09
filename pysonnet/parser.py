@@ -460,6 +460,7 @@ class Parser:
         return ast.LocalExpression.Bind(name, expression)
 
     def _parse_object_local(self) -> Optional[ast.ObjectLocal]:
+        self.next_token()  # consume the 'local' token
         ident = self._parse_identifier()
         if not self._expect_peek_type(TokenType.EQUAL):
             return None
@@ -537,6 +538,8 @@ class Parser:
             or self._current_token_type_is(TokenType.LBRACKET)
         ):
             member = self._parse_object_field()
+        else:
+            self._errors.append(f"unexpected token {self._cur_token.token_type}")
         if member is None:
             return None
         return member
@@ -559,16 +562,60 @@ class Parser:
             return None
         return ast.IfSpec(condition)
 
-    def _parse_object(self) -> Optional[ast.Object]:
+    def _parse_object(self) -> Optional[Union[ast.Object, ast.ObjectCompreshension]]:
+        fields: List[ast.ObjectField] = []
+        efields: List[ast.ObjectField] = []
+        asserts: List[ast.Assert] = []
+        locals_: List[ast.ObjectLocal] = []
         members: List[ast.ObjectMember] = []
-        while not self._peek_token_type_is(TokenType.RBRACE):
+        while not (self._peek_token_type_is(TokenType.RBRACE) or self._peek_token_type_is(TokenType.FOR)):
+            container: List
+            if self._peek_token_type_is(TokenType.LOCAL):
+                container = locals_
+            elif self._peek_token_type_is(TokenType.ASSERT):
+                container = asserts
+            elif self._peek_token_type_is(TokenType.LBRACKET):
+                container = efields
+            else:
+                container = fields
             self.next_token()
             member = self._parse_object_member()
             if member is None:
                 return None
+            container.append(member)
             members.append(member)
             if self._peek_token_type_is(TokenType.COMMA):
                 self.next_token()
+        if self._peek_token_type_is(TokenType.FOR):
+            if fields or len(efields) != 1:
+                self._errors.append("object comprehensions can only have a single [e] field")
+                return None
+            key = efields[0].key
+            value = efields[0].expr
+            self.next_token()  # move to the 'for' token
+            forspec = self._parse_for_spec()
+            if forspec is None:
+                return None
+            compspecs: List[ast.ComprehensionSpec] = []
+            while not self._peek_token_type_is(TokenType.RBRACE):
+                if self._peek_token_type_is(TokenType.FOR):
+                    self.next_token()
+                    forspec = self._parse_for_spec()
+                    if forspec is None:
+                        return None
+                    compspecs.append(forspec)
+                elif self._peek_token_type_is(TokenType.IF):
+                    self.next_token()
+                    ifspec = self._parse_if_spec()
+                    if ifspec is None:
+                        return None
+                    compspecs.append(ifspec)
+                else:
+                    self._errors.append(f"expected 'for' or 'if', got {self._peek_token.token_type} instead")
+                    return None
+            if not self._expect_peek_type(TokenType.RBRACE):
+                return None
+            return ast.ObjectCompreshension(locals_, key, value, forspec, compspecs)
         if not self._expect_peek_type(TokenType.RBRACE):
             return None
         return ast.Object(members)

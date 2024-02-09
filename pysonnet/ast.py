@@ -186,6 +186,15 @@ class Object(AST[Dict[str, Any]]):
 
 
 @dataclasses.dataclass(frozen=True)
+class ObjectCompreshension(Generic[_T_co], AST[Dict[str, _T_co]]):
+    locals_: List[ObjectLocal]
+    key: AST[Optional[str]]
+    value: AST[_T_co]
+    forspec: ForSpec[Any]
+    compspecs: List[ComprehensionSpec]
+
+
+@dataclasses.dataclass(frozen=True)
 class Array(Generic[_T_co], AST[List[_T_co]]):
     elements: List[AST[_T_co]]
 
@@ -194,4 +203,4 @@ class Array(Generic[_T_co], AST[List[_T_co]]):
 class ArrayComprehension(Generic[_T_co], AST[List[_T_co]]):
     expression: AST[Any]
     forspec: ForSpec[_T_co]
-    compspec: List[ComprehensionSpec]
+    compspecs: List[ComprehensionSpec]

@@ -300,6 +300,42 @@ from pysonnet.parser import Parser
                 ],
             ),
         ),
+        (
+            """
+            {
+              local p = 'v',
+              ['k' + i]: p + (i + n),
+              local n = 2
+              for i in values
+              if i % 2 == 0
+            }
+            """,
+            ast.ObjectCompreshension(
+                [
+                    ast.ObjectLocal(ast.Identifier("p"), ast.String("v")),
+                    ast.ObjectLocal(ast.Identifier("n"), ast.Number(2)),
+                ],
+                ast.Binary[str](ast.Binary.Operator.ADD, ast.String("k"), ast.Identifier("i")),
+                ast.Binary[str](
+                    ast.Binary.Operator.ADD,
+                    ast.Identifier("p"),
+                    ast.Binary(ast.Binary.Operator.ADD, ast.Identifier("i"), ast.Identifier("n")),
+                ),
+                ast.ForSpec(
+                    ast.Identifier("i"),
+                    ast.Identifier("values"),
+                ),
+                [
+                    ast.IfSpec(
+                        ast.Binary(
+                            ast.Binary.Operator.EQ,
+                            ast.Binary(ast.Binary.Operator.MOD, ast.Identifier("i"), ast.Number(2)),
+                            ast.Number(0),
+                        ),
+                    ),
+                ],
+            ),
+        ),
     ],
 )
 def test_object_expression(inputs: str, expected_expr: Any) -> None:
