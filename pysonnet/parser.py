@@ -168,22 +168,8 @@ class Parser:
     def _parse_dollar(self) -> Optional[ast.Dollar]:
         return ast.Dollar()
 
-    def _parse_super(self) -> Optional[ast.SuperIndex]:
-        self.next_token()  # consume the 'super' token
-        key: ast.AST[str]
-        if self._current_token_type_is(TokenType.DOT):
-            if not self._expect_peek_type(TokenType.IDENT):
-                return None
-            key = ast.String(self._cur_token.literal)
-        elif self._current_token_type_is(TokenType.LBRACKET):
-            self.next_token()  # consume the '[' token
-            expression = self._parse_expression(Precedence.LOWEST)
-            if expression is None:
-                return None
-            key = expression
-            if not self._expect_peek_type(TokenType.RBRACKET):
-                return None
-        return ast.SuperIndex(key)
+    def _parse_super(self) -> Optional[ast.Super]:
+        return ast.Super()
 
     def _parse_error(self) -> Optional[ast.Error]:
         self.next_token()  # consume the 'error' token

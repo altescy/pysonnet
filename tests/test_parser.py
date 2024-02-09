@@ -110,7 +110,7 @@ from pysonnet.parser import Parser
                                         ast.String("msg"),
                                         ast.Binary(
                                             ast.Binary.Operator.ADD,
-                                            ast.SuperIndex(ast.String("msg")),
+                                            ast.Binary(ast.Binary.Operator.INDEX, ast.Super(), ast.String("msg")),
                                             ast.String("!"),
                                         ),
                                     )
@@ -489,6 +489,21 @@ from pysonnet.parser import Parser
                         ),
                     ),
                 ],
+            ),
+        ),
+        (
+            """
+            { a: 1 }  { b: 'a' in super }
+            """,
+            ast.ApplyBrace(
+                ast.Object([ast.ObjectField(ast.String("a"), ast.Number(1))]),
+                ast.Object(
+                    [
+                        ast.ObjectField(
+                            ast.String("b"), ast.Binary(ast.Binary.Operator.IN, ast.String("a"), ast.Super())
+                        )
+                    ],
+                ),
             ),
         ),
     ],
