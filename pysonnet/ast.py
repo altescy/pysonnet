@@ -135,6 +135,16 @@ class Binary(Generic[_T_co], AST[_T_co]):
 
 
 @dataclasses.dataclass(frozen=True)
+class Self(Dict[str, Any]):
+    ...
+
+
+@dataclasses.dataclass(frozen=True)
+class Dollar(AST[Dict[str, Any]]):
+    ...
+
+
+@dataclasses.dataclass(frozen=True)
 class SuperIndex(Generic[_T_co], AST[_T_co]):
     key: AST[str]
 

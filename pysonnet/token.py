@@ -67,6 +67,7 @@ class TokenType(Enum):
     IMPORT = "IMPORT"
     IMPORTSTR = "IMPORTSTR"
     IMPORTBIN = "IMPORTBIN"
+    DOLLAR = "DOLLAR"
 
 
 _KEYWORDS = {

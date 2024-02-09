@@ -331,6 +331,8 @@ class Lexer:
         elif self._ch in ('"', "'"):
             literal = self._read_string()
             return Token(TokenType.STRING, literal)
+        elif self._ch == "$":
+            token = Token(TokenType.DOLLAR, self._ch)
         elif self._ch == "@" and self._peek() in ("'", '"'):
             self._read_char()
             literal = self._read_string(verbatim=True)

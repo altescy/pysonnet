@@ -76,6 +76,8 @@ class Parser:
             TokenType.MINUS: self._parse_unary,
             TokenType.BANG: self._parse_unary,
             TokenType.TILDE: self._parse_unary,
+            TokenType.SELF: self._parse_self,
+            TokenType.DOLLAR: self._parse_dollar,
             TokenType.SUPER: self._parse_super,
             TokenType.FUNCTION: self._parse_function,
             TokenType.ERROR: self._parse_error,
@@ -158,6 +160,12 @@ class Parser:
         if not self._expect_peek_type(TokenType.RPAREN):
             return None
         return expression
+
+    def _parse_self(self) -> Optional[ast.Self]:
+        return ast.Self()
+
+    def _parse_dollar(self) -> Optional[ast.Dollar]:
+        return ast.Dollar()
 
     def _parse_super(self) -> Optional[ast.SuperIndex]:
         self.next_token()  # consume the 'super' token
