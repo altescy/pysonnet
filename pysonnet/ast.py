@@ -172,7 +172,7 @@ class Array(Expression[List[Any]]):
 
 
 @dataclasses.dataclass(frozen=True)
-class ListComprehension(Expression[List[Any]]):
+class ArrayComprehension(Expression[List[Any]]):
     expression: Expression[Any]
     forspec: ForStatement[Any]
     compspec: List[Union[ForStatement, IfStatement]]

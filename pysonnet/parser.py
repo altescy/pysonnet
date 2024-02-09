@@ -513,7 +513,7 @@ class Parser:
             return None
         return ast.Object(members)
 
-    def _parse_array(self) -> Optional[Union[ast.Array, ast.ListComprehension]]:
+    def _parse_array(self) -> Optional[Union[ast.Array, ast.ArrayComprehension]]:
         self.next_token()  # consume the '[' token
 
         first_expression = self._parse_expression(Precedence.LOWEST)
@@ -545,7 +545,7 @@ class Parser:
                     return None
             if not self._expect_peek_type(TokenType.RBRACKET):
                 return None
-            return ast.ListComprehension(first_expression, forspec, compspec)
+            return ast.ArrayComprehension(first_expression, forspec, compspec)
 
         # parse array
         elements: List[ast.Expression[Any]] = [first_expression]

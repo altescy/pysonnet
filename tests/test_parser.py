@@ -44,7 +44,7 @@ from pysonnet.parser import Parser
             """,
             ast.LocalExpression(
                 [ast.BindStatement(ast.Identifier("xs"), ast.Array([ast.Number(1), ast.Number(2), ast.Number(3)]))],
-                ast.ListComprehension(
+                ast.ArrayComprehension(
                     ast.Identifier("x"),
                     ast.ForStatement(ast.Identifier("x"), ast.Identifier("xs")),
                     [ast.IfStatement(ast.UnaryExpression(ast.UnaryExpression.Operator.NOT, ast.Identifier("x")))],
