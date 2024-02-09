@@ -7,6 +7,9 @@ license = "MIT License"
 readme = "README.md"
 homepage = "https://github.com/altescy/pysonnet"
 
+[tool.poetry.scripts]
+pysonnet = "pysonnet.__main__:run"
+
 [[tool.poetry.source]]
 name = "pypi"
 priority = "primary"
