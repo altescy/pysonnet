@@ -4,7 +4,6 @@ import enum
 import json
 from typing import Callable, Dict, Generic, List, NamedTuple, Optional, TypeVar, Union, overload
 
-from pysonnet.errors import PysonnetRuntimeError
 from pysonnet.types import JsonPrimitive
 
 _Real_co = TypeVar("_Real_co", bound=Union[bool, int, float], covariant=True)
@@ -250,10 +249,10 @@ class Function(Generic[_PrimitiveType], Primitive):
         return self._func(*args, **kwargs)
 
     def __str__(self) -> str:
-        raise PysonnetRuntimeError("Cannot convert a function to string.")
+        raise NotImplementedError
 
     def to_json(self) -> None:
-        raise PysonnetRuntimeError("Cannot convert a function to JSON.")
+        raise NotImplementedError
 
 
 # Constants
