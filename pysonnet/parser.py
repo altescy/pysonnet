@@ -406,18 +406,22 @@ class Parser:
         start: Optional[ast.AST] = None
         end: Optional[ast.AST] = None
         step: Optional[ast.AST] = None
+        num_colons = 0
         if self._peek_token_type_is(TokenType.COLON):
+            num_colons += 1
             self.next_token()
         elif self._peek_token_type_is(TokenType.DCOLON):
-            pass
+            num_colons += 2
         else:
             self.next_token()
             start = self._parse_expression(Precedence.LOWEST)
             if start is None:
                 return None
             if self._peek_token_type_is(TokenType.COLON):
+                num_colons += 1
                 self.next_token()
         if self._peek_token_type_is(TokenType.DCOLON):
+            num_colons += 2
             self.next_token()
         elif self._peek_token_type_is(TokenType.RBRACKET):
             pass
@@ -427,6 +431,7 @@ class Parser:
             if not end:
                 return None
             if self._peek_token_type_is(TokenType.COLON):
+                num_colons += 1
                 self.next_token()
         if not self._peek_token_type_is(TokenType.RBRACKET):
             self.next_token()
@@ -435,10 +440,12 @@ class Parser:
                 return None
         if not self._expect_peek_type(TokenType.RBRACKET):
             return None
+        if num_colons == 0:
+            if start is None:
+                return indexable
+            return ast.Binary(ast.Binary.Operator.INDEX, indexable, start)
         if not start and not end and not step:
             return indexable
-        if start and not end and not step:
-            return ast.Binary(ast.Binary.Operator.INDEX, indexable, start)
         return ast.Apply(
             ast.Binary(
                 ast.Binary.Operator.INDEX,
