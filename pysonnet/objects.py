@@ -4,6 +4,7 @@ import enum
 import json
 from typing import Callable, Dict, Generic, List, NamedTuple, Optional, TypeVar, Union, overload
 
+from pysonnet.errors import PysonnetRuntimeError
 from pysonnet.types import JsonPrimitive
 
 _Real_co = TypeVar("_Real_co", bound=Union[bool, int, float], covariant=True)
@@ -12,14 +13,18 @@ _PrimitiveType = TypeVar("_PrimitiveType", bound="Primitive")
 
 
 class Primitive:
+    def __str__(self) -> str:
+        return json.dumps(self.to_json())
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
     def to_json(self) -> JsonPrimitive:
+        """Convert the object to a JSON-serializable object."" """
         raise NotImplementedError
 
 
 class Null(Primitive):
-    def __str__(self) -> str:
-        return "null"
-
     def to_json(self) -> None:
         return None
 
@@ -168,12 +173,6 @@ class Number(Generic[_Real_co], Primitive):
     def __float__(self) -> float:
         return float(self.value)
 
-    def __str__(self) -> str:
-        return str(self.value)
-
-    def __repr__(self) -> str:
-        return f"Number({self.value!r})"
-
     def to_json(self) -> Union[bool, int, float]:
         return self.value
 
@@ -189,6 +188,10 @@ class String(str, Primitive):
         return String(super().__add__(other))
 
     def __mod__(self, other: Primitive) -> String:
+        if isinstance(other, Number):
+            other = other.to_json()  # type: ignore[assignment]
+        if isinstance(other, Array):
+            other = tuple(other)  # type: ignore[assignment]
         return String(super().__mod__(other))
 
     def to_json(self) -> str:
@@ -217,20 +220,20 @@ class Object(Dict[String, Primitive], Primitive):
 
     def __init__(self, *fields: Field) -> None:
         super().__init__(**{field.key: field.value for field in fields})
-        self._inherits = {field.key: field.inherit for field in fields}
-        self._visibilities = {field.key: field.visibility or Object.Visibility.VISIBLE for field in fields}
+        self._properties = {
+            field.key: (field.inherit, field.visibility or Object.Visibility.VISIBLE) for field in fields
+        }
 
     def add(self, field: Field) -> Object:
         self[field.key] = field.value
-        self._inherits[field.key] = field.inherit
-        self._visibilities[field.key] = field.visibility or Object.Visibility.VISIBLE
+        self._properties[field.key] = (field.inherit, field.visibility or Object.Visibility.VISIBLE)
         return self
 
     def inherit(self, key: String) -> bool:
-        return self._inherits[key]
+        return self._properties[key][0]
 
     def visibility(self, key: String) -> Object.Visibility:
-        return self._visibilities[key]
+        return self._properties[key][1]
 
     def __add__(self, other: Object) -> Object:
         raise NotImplementedError
@@ -245,6 +248,12 @@ class Function(Generic[_PrimitiveType], Primitive):
 
     def __call__(self, *args: Primitive, **kwargs: Primitive) -> _PrimitiveType:
         return self._func(*args, **kwargs)
+
+    def __str__(self) -> str:
+        raise PysonnetRuntimeError("Cannot convert a function to string.")
+
+    def to_json(self) -> None:
+        raise PysonnetRuntimeError("Cannot convert a function to JSON.")
 
 
 # Constants
