@@ -634,7 +634,7 @@ class Parser:
             return None
         return ast.IfSpec(condition)
 
-    def _parse_object(self) -> Optional[Union[ast.Object, ast.ObjectCompreshension]]:
+    def _parse_object(self) -> Optional[Union[ast.Object, ast.ObjectComprehension]]:
         fields: List[ast.ObjectField] = []
         efields: List[ast.ObjectField] = []
         asserts: List[ast.Assert] = []
@@ -687,7 +687,7 @@ class Parser:
                     return None
             if not self._expect_peek_type(TokenType.RBRACE):
                 return None
-            return ast.ObjectCompreshension(locals_, key, value, forspec, compspecs)
+            return ast.ObjectComprehension(locals_, key, value, forspec, compspecs)
         if not self._expect_peek_type(TokenType.RBRACE):
             return None
         return ast.Object(members)

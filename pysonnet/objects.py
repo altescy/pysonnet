@@ -253,7 +253,7 @@ class Object(Dict[String, Primitive], Primitive):
                 visibility = Object.Visibility.HIDDEN
             inherit = self.inherit(key) and inherit
         self[key] = value
-        self._properties[field.key] = (inherit, visibility)
+        self._properties[key] = (inherit, visibility)
         return self
 
     def get_field(self, key: String) -> Optional[Field]:

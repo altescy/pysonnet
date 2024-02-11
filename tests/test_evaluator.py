@@ -187,6 +187,24 @@ from pysonnet.parser import Parser
             """,
             [2, 3, 2, 6],
         ),
+        (
+            """
+            { ['key' + i]: i for i in [1, 2, 3, 4] }
+            """,
+            {"key1": 1, "key2": 2, "key3": 3, "key4": 4},
+        ),
+        (
+            """
+            { ['key' + i]: i for i in [1, 2, 3, 4] if i % 2 == 1 }
+            """,
+            {"key1": 1, "key3": 3},
+        ),
+        (
+            """
+            {['key' + i + j]: i * j for i in [1, 2, 3] if i < 3 for j in [1, 2, 3] if i != j}
+            """,
+            {"key12": 2, "key13": 3, "key21": 2, "key23": 6},
+        ),
     ],
 )
 def test_evaluate(inputs: str, expected: Any) -> None:

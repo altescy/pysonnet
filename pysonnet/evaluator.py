@@ -292,6 +292,49 @@ class Evaluator:
                 values.append(self(node.expression, context))
         return Array(values)
 
+    def _evaluate_object_comprehension(self, node: ast.ObjectComprehension, context: Context) -> Object:
+        iterable = self(node.forspec.expr, context)
+        if not isinstance(iterable, Array):
+            raise PysonnetRuntimeError(f"Unexpected type {stdtype(iterable)}, expected array")
+        context = context.clone()
+        for local in node.locals_:
+            context.bindings[local.bind.ident.name] = Lazy(local.bind.expr, context)
+        compspecs = [compspec for compspec in node.compspecs]
+        while compspecs and isinstance(compspecs[0], ast.IfSpec):
+            ifspec = cast(ast.IfSpec, compspecs.pop(0))
+            for index, value in enumerate(iterable):
+                context.bindings[node.forspec.ident.name] = value
+                condition = self(ifspec.condition, context)
+                if not isinstance(condition, Boolean):
+                    raise PysonnetRuntimeError(f"Unpexpected type {stdtype(condition)}, expected boolean")
+                if not condition:
+                    iterable.pop(index)
+        obj = Object()
+        for value in iterable:
+            context.bindings[node.forspec.ident.name] = value
+
+            if compspecs:
+                nested_forspec = compspecs[0]
+                assert isinstance(nested_forspec, ast.ForSpec)
+                nested_comprehension = ast.ObjectComprehension([], node.key, node.value, nested_forspec, compspecs[1:])
+                values = self._evaluate_object_comprehension(nested_comprehension, context.clone())
+                for key, value in values.items():
+                    if key in obj:
+                        raise PysonnetRuntimeError(f"Duplicate field name: {key}")
+                    obj.add_field(Object.Field(key, value))
+            else:
+                key_ = self(node.key, context)
+                if isinstance(key_, Null):
+                    continue
+                if not isinstance(key_, String):
+                    raise PysonnetRuntimeError(f"Field name must be a string, not {stdtype(key)}")
+                key = key_
+                if key in obj:
+                    raise PysonnetRuntimeError(f"Duplicate field name: {key}")
+                value = self(node.value, context)
+                obj.add_field(Object.Field(key, value))
+        return obj
+
     def _evaluate_self(self, node: ast.Self, context: Context) -> Primitive:
         if context.this is None:
             raise PysonnetRuntimeError("No object in context")
@@ -348,6 +391,9 @@ class Evaluator:
 
         if isinstance(node, ast.ArrayComprehension):
             return self._evaluate_array_comprehension(node, context)
+
+        if isinstance(node, ast.ObjectComprehension):
+            return self._evaluate_object_comprehension(node, context)
 
         if isinstance(node, ast.Error):
             return self._evaluate_error(node, context)

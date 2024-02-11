@@ -314,7 +314,7 @@ from pysonnet.parser import Parser
               if i % 2 == 0
             }
             """,
-            ast.ObjectCompreshension(
+            ast.ObjectComprehension(
                 [
                     ast.ObjectLocal(ast.Bind(ast.Identifier("p"), ast.String("v"))),
                     ast.ObjectLocal(ast.Bind(ast.Identifier("n"), ast.Number(2))),
@@ -696,7 +696,7 @@ from pysonnet.parser import Parser
             """
             {[a + b]: a + b for a in ["a", "b"] for b in [1, 2]}
             """,
-            ast.ObjectCompreshension(
+            ast.ObjectComprehension(
                 [],
                 ast.Binary[str](ast.Binary.Operator.ADD, ast.Identifier("a"), ast.Identifier("b")),
                 ast.Binary[str](ast.Binary.Operator.ADD, ast.Identifier("a"), ast.Identifier("b")),
@@ -713,7 +713,7 @@ from pysonnet.parser import Parser
                 for b in [n, 2]
             }
             """,
-            ast.ObjectCompreshension(
+            ast.ObjectComprehension(
                 [ast.ObjectLocal(ast.Bind(ast.Identifier("n"), ast.Number(1)))],
                 ast.Binary[str](ast.Binary.Operator.ADD, ast.Identifier("a"), ast.Identifier("b")),
                 ast.Binary[str](ast.Binary.Operator.ADD, ast.Identifier("a"), ast.Identifier("b")),
