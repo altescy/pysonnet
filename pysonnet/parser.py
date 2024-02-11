@@ -672,16 +672,16 @@ class Parser:
             while not self._peek_token_type_is(TokenType.RBRACE):
                 if self._peek_token_type_is(TokenType.FOR):
                     self.next_token()
-                    forspec = self._parse_for_spec()
-                    if forspec is None:
+                    nested_forspec = self._parse_for_spec()
+                    if nested_forspec is None:
                         return None
-                    compspecs.append(forspec)
+                    compspecs.append(nested_forspec)
                 elif self._peek_token_type_is(TokenType.IF):
                     self.next_token()
-                    ifspec = self._parse_if_spec()
-                    if ifspec is None:
+                    nested_ifspec = self._parse_if_spec()
+                    if nested_ifspec is None:
                         return None
-                    compspecs.append(ifspec)
+                    compspecs.append(nested_ifspec)
                 else:
                     self._errors.append(f"expected 'for' or 'if', got {self._peek_token.token_type} instead")
                     return None
@@ -705,7 +705,7 @@ class Parser:
         if self._peek_token_type_is(TokenType.COMMA):
             self.next_token()
 
-        # parse list comprehension
+        # parse array comprehension
         if self._peek_token_type_is(TokenType.FOR):
             self.next_token()  # move to the 'for' token
             forspec = self._parse_for_spec()
@@ -715,16 +715,16 @@ class Parser:
             while not self._peek_token_type_is(TokenType.RBRACKET):
                 if self._peek_token_type_is(TokenType.FOR):
                     self.next_token()
-                    forspec = self._parse_for_spec()
-                    if forspec is None:
+                    nested_forspec = self._parse_for_spec()
+                    if nested_forspec is None:
                         return None
-                    compspec.append(forspec)
+                    compspec.append(nested_forspec)
                 elif self._peek_token_type_is(TokenType.IF):
                     self.next_token()
-                    ifspec = self._parse_if_spec()
-                    if ifspec is None:
+                    nested_ifspec = self._parse_if_spec()
+                    if nested_ifspec is None:
                         return None
-                    compspec.append(ifspec)
+                    compspec.append(nested_ifspec)
                 else:
                     self._errors.append(f"expected 'for' or 'if', got {self._peek_token.token_type} instead")
                     return None
