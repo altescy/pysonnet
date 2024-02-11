@@ -1,7 +1,7 @@
 from typing import Mapping, TypeVar, Union
 
 from pysonnet.errors import PysonnetRuntimeError
-from pysonnet.objects import Array, Boolean, Function, Null, Number, Object, Primitive, String
+from pysonnet.objects import NULL, Array, Boolean, Function, Null, Number, Object, Primitive, String
 
 _T = TypeVar("_T", bound=Primitive)
 _T_co = TypeVar("_T_co", covariant=True, bound=Primitive)
@@ -57,6 +57,23 @@ class StdLib:
         )
         return Array(iterable[s])
 
+    def _range(
+        self,
+        start: Number[int],
+        end: Number[int],
+        step: Union[Number[int], Null] = NULL,
+    ) -> Array[Number[int]]:
+        return Array(
+            [
+                Number(i)
+                for i in range(
+                    start.value,
+                    end.value + 1,
+                    step.value if isinstance(step, Number) else 1,
+                )
+            ]
+        )
+
     def _filter(self, func: Function, value: Array[_T]) -> Array[_T]:
         return Array([item for item in value if func(item)])
 
@@ -92,6 +109,7 @@ class StdLib:
             Object.Field(String("type"), Function(self._type)),
             Object.Field(String("length"), Function(self._length)),
             Object.Field(String("slice"), Function(self._slice)),
+            Object.Field(String("range"), Function(self._range)),
             Object.Field(String("map"), Function(self._map)),
             Object.Field(String("makeArray"), Function(self._make_array)),
             Object.Field(String("join"), Function(self._join)),
