@@ -169,6 +169,24 @@ from pysonnet.parser import Parser
             """,
             4,
         ),
+        (
+            """
+            [x for x in [1, 2, 3, 4, 5] if x % 2 == 0]
+            """,
+            [2, 4],
+        ),
+        (
+            """
+            [i * j for i in [1, 2] for j in [3, 4]]
+            """,
+            [3, 4, 6, 8],
+        ),
+        (
+            """
+            [i * j for i in [1, 2, 3] if i < 3 for j in [1, 2, 3] if i != j]
+            """,
+            [2, 3, 2, 6],
+        ),
     ],
 )
 def test_evaluate(inputs: str, expected: Any) -> None:

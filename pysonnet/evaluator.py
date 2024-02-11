@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Dict, Optional, Union, cast
+from typing import Dict, List, Optional, Union, cast
 
 from pysonnet import ast
 from pysonnet.errors import PysonnetRuntimeError
@@ -264,6 +264,34 @@ class Evaluator:
 
         return Function(_execute_function)
 
+    def _evaluate_array_comprehension(self, node: ast.ArrayComprehension, context: Context) -> Array:
+        iterable = self(node.forspec.expr, context)
+        if not isinstance(iterable, Array):
+            raise PysonnetRuntimeError(f"Unexpected type {stdtype(iterable)}, expected array")
+        context = context.clone()
+        compspecs = [compspec for compspec in node.compspecs]
+        while compspecs and isinstance(compspecs[0], ast.IfSpec):
+            ifspec = cast(ast.IfSpec, compspecs.pop(0))
+            for index, value in enumerate(iterable):
+                context.bindings[node.forspec.ident.name] = value
+                condition = self(ifspec.condition, context)
+                if not isinstance(condition, Boolean):
+                    raise PysonnetRuntimeError(f"Unpexpected type {stdtype(condition)}, expected boolean")
+                if not condition:
+                    iterable.pop(index)
+        values: List[Primitive] = []
+        for value in iterable:
+            context.bindings[node.forspec.ident.name] = value
+            if compspecs:
+                nested_forspec = compspecs[0]
+                assert isinstance(nested_forspec, ast.ForSpec)
+                nested_comprehension = ast.ArrayComprehension(node.expression, nested_forspec, compspecs[1:])
+                nested_values = self._evaluate_array_comprehension(nested_comprehension, context.clone())
+                values.extend(nested_values)
+            else:
+                values.append(self(node.expression, context))
+        return Array(values)
+
     def _evaluate_self(self, node: ast.Self, context: Context) -> Primitive:
         if context.this is None:
             raise PysonnetRuntimeError("No object in context")
@@ -317,6 +345,9 @@ class Evaluator:
 
         if isinstance(node, ast.Function):
             return self._evaluate_function(node, context)
+
+        if isinstance(node, ast.ArrayComprehension):
+            return self._evaluate_array_comprehension(node, context)
 
         if isinstance(node, ast.Error):
             return self._evaluate_error(node, context)
