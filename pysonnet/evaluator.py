@@ -1,9 +1,12 @@
 import dataclasses
+from pathlib import Path
 from typing import Dict, List, Mapping, Optional, Union, cast
 
 from pysonnet import ast
 from pysonnet.errors import PysonnetRuntimeError
+from pysonnet.lexer import Lexer
 from pysonnet.objects import FALSE, NULL, TRUE, Array, Boolean, Function, Lazy, Null, Number, Object, Primitive, String
+from pysonnet.parser import Parser
 from pysonnet.stdlib import StdLib
 
 
@@ -388,6 +391,40 @@ class Evaluator:
         message = self(node.expr, context)
         raise PysonnetRuntimeError(str(message))
 
+    def _evaluate_import(self, node: ast.Import, context: Context) -> Primitive:
+        # TODO: relative import
+        filename = Path(node.filename)
+        if not filename.exists():
+            raise PysonnetRuntimeError(f"File not found: {filename}")
+        if not filename.is_file():
+            raise PysonnetRuntimeError(f"Not a file: {filename}")
+        with filename.open() as f:
+            jp = Parser(Lexer(f))
+            ast = jp.parse()
+        if not ast:
+            raise PysonnetRuntimeError(f"Failed to parse {filename}")
+        return self(ast, context)
+
+    def _evaluate_importstr(self, node: ast.Importstr, context: Context) -> String:
+        # TODO: relative import
+        del context
+        filename = Path(node.filename)
+        if not filename.exists():
+            raise PysonnetRuntimeError(f"File not found: {filename}")
+        if not filename.is_file():
+            raise PysonnetRuntimeError(f"Not a file: {filename}")
+        return String(filename.read_text())
+
+    def _evaluate_importbin(self, node: ast.Importbin, context: Context) -> Array[Number[int]]:
+        # TODO: relative import
+        del context
+        filename = Path(node.filename)
+        if not filename.exists():
+            raise PysonnetRuntimeError(f"File not found: {filename}")
+        if not filename.is_file():
+            raise PysonnetRuntimeError(f"Not a file: {filename}")
+        return Array([Number(b) for b in filename.read_bytes()])
+
     def __call__(self, node: ast.AST, context: Optional[Context] = None) -> Primitive:
         if context is None:
             context = Context()
@@ -439,5 +476,14 @@ class Evaluator:
 
         if isinstance(node, ast.Error):
             return self._evaluate_error(node, context)
+
+        if isinstance(node, ast.Import):
+            return self._evaluate_import(node, context)
+
+        if isinstance(node, ast.Importbin):
+            return self._evaluate_importbin(node, context)
+
+        if isinstance(node, ast.Importstr):
+            return self._evaluate_importstr(node, context)
 
         raise PysonnetRuntimeError(f"Unsupported type: {type(node)}")
