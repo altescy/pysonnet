@@ -1,4 +1,5 @@
 import inspect
+import sys
 from functools import wraps
 from typing import Any, Callable, Mapping, TypeVar, Union
 
@@ -153,6 +154,15 @@ class StdLib:
     def _clamp(self, a: Number, minVal: Number, maxVal: Number) -> Number:
         return Number(max(min(a, maxVal), minVal))
 
+    @_eval_args
+    def _to_string(self, a: Primitive) -> String:
+        return String(a)
+
+    @_eval_args
+    def _trace(self, str: String, rest: _T) -> _T:
+        print("TRACE:", str, file=sys.stderr)
+        return rest
+
     def as_object(self) -> Object:
         return Object(
             Object.Field(String("extVar"), Function(self._ext_var)),
@@ -170,4 +180,6 @@ class StdLib:
             Object.Field(String("max"), Function(self._max)),
             Object.Field(String("min"), Function(self._min)),
             Object.Field(String("clamp"), Function(self._clamp)),
+            Object.Field(String("toString"), Function(self._to_string)),
+            Object.Field(String("trace"), Function(self._trace)),
         )
