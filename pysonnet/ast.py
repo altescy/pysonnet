@@ -209,7 +209,7 @@ class Object(AST[Dict[str, Any]]):
 
 
 @dataclasses.dataclass(frozen=True)
-class ObjectCompreshension(Generic[_T_co], AST[Dict[str, _T_co]]):
+class ObjectComprehension(Generic[_T_co], AST[Dict[str, _T_co]]):
     locals_: List[ObjectLocal]
     key: AST[Optional[str]]
     value: AST[_T_co]

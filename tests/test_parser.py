@@ -314,7 +314,7 @@ from pysonnet.parser import Parser
               if i % 2 == 0
             }
             """,
-            ast.ObjectCompreshension(
+            ast.ObjectComprehension(
                 [
                     ast.ObjectLocal(ast.Bind(ast.Identifier("p"), ast.String("v"))),
                     ast.ObjectLocal(ast.Bind(ast.Identifier("n"), ast.Number(2))),
@@ -680,6 +680,45 @@ from pysonnet.parser import Parser
                     [ast.Arg(ast.Error(ast.String("xxx")))],
                     tailstrict=True,
                 ),
+            ),
+        ),
+        (
+            """
+            [i * j for i in [1, 2] for j in [3, 4]]
+            """,
+            ast.ArrayComprehension(
+                ast.Binary(ast.Binary.Operator.MUL, ast.Identifier("i"), ast.Identifier("j")),
+                ast.ForSpec(ast.Identifier("i"), ast.Array([ast.Number(1), ast.Number(2)])),
+                [ast.ForSpec(ast.Identifier("j"), ast.Array([ast.Number(3), ast.Number(4)]))],
+            ),
+        ),
+        (
+            """
+            {[a + b]: a + b for a in ["a", "b"] for b in [1, 2]}
+            """,
+            ast.ObjectComprehension(
+                [],
+                ast.Binary[str](ast.Binary.Operator.ADD, ast.Identifier("a"), ast.Identifier("b")),
+                ast.Binary[str](ast.Binary.Operator.ADD, ast.Identifier("a"), ast.Identifier("b")),
+                ast.ForSpec(ast.Identifier("a"), ast.Array([ast.String("a"), ast.String("b")])),
+                [ast.ForSpec(ast.Identifier("b"), ast.Array([ast.Number(1), ast.Number(2)]))],
+            ),
+        ),
+        (
+            """
+            {
+                [a + b]: a + b
+                local n = 1
+                for a in ["a", "b"]
+                for b in [n, 2]
+            }
+            """,
+            ast.ObjectComprehension(
+                [ast.ObjectLocal(ast.Bind(ast.Identifier("n"), ast.Number(1)))],
+                ast.Binary[str](ast.Binary.Operator.ADD, ast.Identifier("a"), ast.Identifier("b")),
+                ast.Binary[str](ast.Binary.Operator.ADD, ast.Identifier("a"), ast.Identifier("b")),
+                ast.ForSpec(ast.Identifier("a"), ast.Array([ast.String("a"), ast.String("b")])),
+                [ast.ForSpec(ast.Identifier("b"), ast.Array([ast.Identifier("n"), ast.Number(2)]))],
             ),
         ),
     ],

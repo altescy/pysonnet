@@ -406,18 +406,22 @@ class Parser:
         start: Optional[ast.AST] = None
         end: Optional[ast.AST] = None
         step: Optional[ast.AST] = None
+        num_colons = 0
         if self._peek_token_type_is(TokenType.COLON):
+            num_colons += 1
             self.next_token()
         elif self._peek_token_type_is(TokenType.DCOLON):
-            pass
+            num_colons += 2
         else:
             self.next_token()
             start = self._parse_expression(Precedence.LOWEST)
             if start is None:
                 return None
             if self._peek_token_type_is(TokenType.COLON):
+                num_colons += 1
                 self.next_token()
         if self._peek_token_type_is(TokenType.DCOLON):
+            num_colons += 2
             self.next_token()
         elif self._peek_token_type_is(TokenType.RBRACKET):
             pass
@@ -427,6 +431,7 @@ class Parser:
             if not end:
                 return None
             if self._peek_token_type_is(TokenType.COLON):
+                num_colons += 1
                 self.next_token()
         if not self._peek_token_type_is(TokenType.RBRACKET):
             self.next_token()
@@ -435,10 +440,12 @@ class Parser:
                 return None
         if not self._expect_peek_type(TokenType.RBRACKET):
             return None
+        if num_colons == 0:
+            if start is None:
+                return indexable
+            return ast.Binary(ast.Binary.Operator.INDEX, indexable, start)
         if not start and not end and not step:
             return indexable
-        if start and not end and not step:
-            return ast.Binary(ast.Binary.Operator.INDEX, indexable, start)
         return ast.Apply(
             ast.Binary(
                 ast.Binary.Operator.INDEX,
@@ -627,7 +634,7 @@ class Parser:
             return None
         return ast.IfSpec(condition)
 
-    def _parse_object(self) -> Optional[Union[ast.Object, ast.ObjectCompreshension]]:
+    def _parse_object(self) -> Optional[Union[ast.Object, ast.ObjectComprehension]]:
         fields: List[ast.ObjectField] = []
         efields: List[ast.ObjectField] = []
         asserts: List[ast.Assert] = []
@@ -665,22 +672,22 @@ class Parser:
             while not self._peek_token_type_is(TokenType.RBRACE):
                 if self._peek_token_type_is(TokenType.FOR):
                     self.next_token()
-                    forspec = self._parse_for_spec()
-                    if forspec is None:
+                    nested_forspec = self._parse_for_spec()
+                    if nested_forspec is None:
                         return None
-                    compspecs.append(forspec)
+                    compspecs.append(nested_forspec)
                 elif self._peek_token_type_is(TokenType.IF):
                     self.next_token()
-                    ifspec = self._parse_if_spec()
-                    if ifspec is None:
+                    nested_ifspec = self._parse_if_spec()
+                    if nested_ifspec is None:
                         return None
-                    compspecs.append(ifspec)
+                    compspecs.append(nested_ifspec)
                 else:
                     self._errors.append(f"expected 'for' or 'if', got {self._peek_token.token_type} instead")
                     return None
             if not self._expect_peek_type(TokenType.RBRACE):
                 return None
-            return ast.ObjectCompreshension(locals_, key, value, forspec, compspecs)
+            return ast.ObjectComprehension(locals_, key, value, forspec, compspecs)
         if not self._expect_peek_type(TokenType.RBRACE):
             return None
         return ast.Object(members)
@@ -698,7 +705,7 @@ class Parser:
         if self._peek_token_type_is(TokenType.COMMA):
             self.next_token()
 
-        # parse list comprehension
+        # parse array comprehension
         if self._peek_token_type_is(TokenType.FOR):
             self.next_token()  # move to the 'for' token
             forspec = self._parse_for_spec()
@@ -708,16 +715,16 @@ class Parser:
             while not self._peek_token_type_is(TokenType.RBRACKET):
                 if self._peek_token_type_is(TokenType.FOR):
                     self.next_token()
-                    forspec = self._parse_for_spec()
-                    if forspec is None:
+                    nested_forspec = self._parse_for_spec()
+                    if nested_forspec is None:
                         return None
-                    compspec.append(forspec)
+                    compspec.append(nested_forspec)
                 elif self._peek_token_type_is(TokenType.IF):
                     self.next_token()
-                    ifspec = self._parse_if_spec()
-                    if ifspec is None:
+                    nested_ifspec = self._parse_if_spec()
+                    if nested_ifspec is None:
                         return None
-                    compspec.append(ifspec)
+                    compspec.append(nested_ifspec)
                 else:
                     self._errors.append(f"expected 'for' or 'if', got {self._peek_token.token_type} instead")
                     return None
