@@ -249,3 +249,14 @@ def test_evaluate_error(inputs: str, error_msg: str) -> None:
     with pytest.raises(PysonnetRuntimeError) as exc_info:
         evaluator(node)
     assert str(exc_info.value) == error_msg
+
+
+def test_ext_vars() -> None:
+    ext_vars = {"a": "1"}
+    inputs = "{ a: std.extVar('a') }"
+    parser = Parser(Lexer(StringIO(inputs)))
+    evaluator = Evaluator(ext_vars)
+    node = parser.parse()
+    assert node is not None
+    value = evaluator(node)
+    assert value.to_json() == {"a": "1"}

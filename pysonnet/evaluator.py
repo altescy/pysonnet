@@ -1,12 +1,10 @@
 import dataclasses
-from typing import Dict, List, Optional, Union, cast
+from typing import Dict, List, Mapping, Optional, Union, cast
 
 from pysonnet import ast
 from pysonnet.errors import PysonnetRuntimeError
 from pysonnet.objects import FALSE, NULL, TRUE, Array, Boolean, Function, Null, Number, Object, Primitive, String
-from pysonnet.stdlib import STDLIB
-
-stdtype = cast(Function[String], STDLIB[String("type")])
+from pysonnet.stdlib import StdLib
 
 
 @dataclasses.dataclass
@@ -35,6 +33,10 @@ class Context:
 
 
 class Evaluator:
+    def __init__(self, ext_vars: Mapping[str, str] = {}) -> None:
+        self._stdlib = StdLib(ext_vars)
+        self._stdobj = self._stdlib.as_object()
+
     def _evaluate_literal(self, node: ast.LiteralAST, context: Context) -> Primitive:
         del context
         if isinstance(node, ast.Null):
@@ -54,7 +56,7 @@ class Evaluator:
                 return self(value.node, value.context)
             return value
         if node.name == "std":
-            return STDLIB
+            return self._stdobj
         raise PysonnetRuntimeError(f"Unknown variable: {node.name}")
 
     def _evaluate_object(self, node: ast.Object, context: Context) -> Object:
@@ -66,7 +68,7 @@ class Evaluator:
                 if isinstance(key, Null):
                     continue
                 if not isinstance(key, String):
-                    raise PysonnetRuntimeError(f"Field name must be a string, not {stdtype(key)}")
+                    raise PysonnetRuntimeError(f"Field name must be a string, not {self._stdlib._type(key)}")
                 if key in objfields:
                     raise PysonnetRuntimeError(f"Duplicate field: {key}")
                 objfields[key] = member
@@ -114,22 +116,30 @@ class Evaluator:
             if isinstance(left, Object) and isinstance(right, Object):
                 # TODO: handle errors
                 return left + right
-            raise PysonnetRuntimeError(f"Unsupported operand types for +: {stdtype(left)} and {stdtype(right)}")
+            raise PysonnetRuntimeError(
+                f"Unsupported operand types for +: {self._stdlib._type(left)} and {self._stdlib._type(right)}"
+            )
         if operator == ast.Binary.Operator.SUB:
             if isinstance(left, Number) and isinstance(right, Number):
                 return left - right
-            raise PysonnetRuntimeError(f"Unsupported operand types for -: {stdtype(left)} and {stdtype(right)}")
+            raise PysonnetRuntimeError(
+                f"Unsupported operand types for -: {self._stdlib._type(left)} and {self._stdlib._type(right)}"
+            )
         if operator == ast.Binary.Operator.MUL:
             if isinstance(left, Number) and isinstance(right, Number):
                 return left * right
-            raise PysonnetRuntimeError(f"Unsupported operand types for *: {stdtype(left)} and {stdtype(right)}")
+            raise PysonnetRuntimeError(
+                f"Unsupported operand types for *: {self._stdlib._type(left)} and {self._stdlib._type(right)}"
+            )
         if operator == ast.Binary.Operator.DIV:
             if isinstance(left, Number) and isinstance(right, Number):
                 try:
                     return left / right
                 except ZeroDivisionError:
                     raise PysonnetRuntimeError("Division by zero")
-            raise PysonnetRuntimeError(f"Unsupported operand types for /: {stdtype(left)} and {stdtype(right)}")
+            raise PysonnetRuntimeError(
+                f"Unsupported operand types for /: {self._stdlib._type(left)} and {self._stdlib._type(right)}"
+            )
         if operator == ast.Binary.Operator.MOD:
             if isinstance(left, Number) and isinstance(right, Number):
                 return left % right
@@ -138,7 +148,9 @@ class Evaluator:
                     return left % right
                 except TypeError as e:
                     raise PysonnetRuntimeError(e.args[0])
-            raise PysonnetRuntimeError(f"Unsupported operand types for %: {stdtype(left)} and {stdtype(right)}")
+            raise PysonnetRuntimeError(
+                f"Unsupported operand types for %: {self._stdlib._type(left)} and {self._stdlib._type(right)}"
+            )
         if operator == ast.Binary.Operator.EQ:
             return Boolean(left == right)
         if operator == ast.Binary.Operator.NE:
@@ -150,7 +162,9 @@ class Evaluator:
                 return Boolean(left < right)
             if isinstance(left, Array) and isinstance(right, Array):
                 return Boolean(left < right)
-            raise PysonnetRuntimeError(f"Unsupported operand types for <: {stdtype(left)} and {stdtype(right)}")
+            raise PysonnetRuntimeError(
+                f"Unsupported operand types for <: {self._stdlib._type(left)} and {self._stdlib._type(right)}"
+            )
         if operator == ast.Binary.Operator.LE:
             if isinstance(left, Number) and isinstance(right, Number):
                 return Boolean(left <= right)
@@ -158,7 +172,9 @@ class Evaluator:
                 return Boolean(left <= right)
             if isinstance(left, Array) and isinstance(right, Array):
                 return Boolean(left <= right)
-            raise PysonnetRuntimeError(f"Unsupported operand types for <=: {stdtype(left)} and {stdtype(right)}")
+            raise PysonnetRuntimeError(
+                f"Unsupported operand types for <=: {self._stdlib._type(left)} and {self._stdlib._type(right)}"
+            )
         if operator == ast.Binary.Operator.GT:
             if isinstance(left, Number) and isinstance(right, Number):
                 return Boolean(left > right)
@@ -166,7 +182,9 @@ class Evaluator:
                 return Boolean(left > right)
             if isinstance(left, Array) and isinstance(right, Array):
                 return Boolean(left > right)
-            raise PysonnetRuntimeError(f"Unsupported operand types for >: {stdtype(left)} and {stdtype(right)}")
+            raise PysonnetRuntimeError(
+                f"Unsupported operand types for >: {self._stdlib._type(left)} and {self._stdlib._type(right)}"
+            )
         if operator == ast.Binary.Operator.GE:
             if isinstance(left, Number) and isinstance(right, Number):
                 return Boolean(left >= right)
@@ -174,7 +192,9 @@ class Evaluator:
                 return Boolean(left >= right)
             if isinstance(left, Array) and isinstance(right, Array):
                 return Boolean(left >= right)
-            raise PysonnetRuntimeError(f"Unsupported operand types for >=: {stdtype(left)} and {stdtype(right)}")
+            raise PysonnetRuntimeError(
+                f"Unsupported operand types for >=: {self._stdlib._type(left)} and {self._stdlib._type(right)}"
+            )
         if operator == ast.Binary.Operator.AND:
             return left and right
         if operator == ast.Binary.Operator.OR:
@@ -184,7 +204,9 @@ class Evaluator:
                 return Boolean(left in right)
             if isinstance(right, dict):
                 return Boolean(left in right)
-            raise PysonnetRuntimeError(f"Unsupported operand types for in: {stdtype(left)} and {stdtype(right)}")
+            raise PysonnetRuntimeError(
+                f"Unsupported operand types for in: {self._stdlib._type(left)} and {self._stdlib._type(right)}"
+            )
         if operator == ast.Binary.Operator.INDEX:
             if isinstance(left, Array) and isinstance(right, Number):
                 try:
@@ -205,7 +227,7 @@ class Evaluator:
         # TODO: handle tailstrict
         callee = self(node.callee, context)
         if not isinstance(callee, Function):
-            raise PysonnetRuntimeError(f"Cannot call {stdtype(callee)}")
+            raise PysonnetRuntimeError(f"Cannot call {self._stdlib._type(callee)}")
         args = [self(arg.expr, context) for arg in node.args if arg.ident is None]
         kwargs = {arg.ident.name: self(arg.expr) for arg in node.args if arg.ident is not None}
         return cast(Primitive, callee(*args, **kwargs))
@@ -225,7 +247,7 @@ class Evaluator:
     def _evaluate_if(self, node: ast.IfExpression, context: Context) -> Primitive:
         condition = self(node.condition, context)
         if not isinstance(condition, Boolean):
-            raise PysonnetRuntimeError(f"Condition must be a boolean, not {stdtype(condition)}")
+            raise PysonnetRuntimeError(f"Condition must be a boolean, not {self._stdlib._type(condition)}")
         if condition:
             return self(node.then_expr, context)
         if node.else_expr is not None:
@@ -271,7 +293,7 @@ class Evaluator:
     def _evaluate_array_comprehension(self, node: ast.ArrayComprehension, context: Context) -> Array:
         iterable = self(node.forspec.expr, context)
         if not isinstance(iterable, Array):
-            raise PysonnetRuntimeError(f"Unexpected type {stdtype(iterable)}, expected array")
+            raise PysonnetRuntimeError(f"Unexpected type {self._stdlib._type(iterable)}, expected array")
         context = context.clone()
         compspecs = [compspec for compspec in node.compspecs]
         while compspecs and isinstance(compspecs[0], ast.IfSpec):
@@ -280,7 +302,7 @@ class Evaluator:
                 context.bindings[node.forspec.ident.name] = value
                 condition = self(ifspec.condition, context)
                 if not isinstance(condition, Boolean):
-                    raise PysonnetRuntimeError(f"Unpexpected type {stdtype(condition)}, expected boolean")
+                    raise PysonnetRuntimeError(f"Unpexpected type {self._stdlib._type(condition)}, expected boolean")
                 if not condition:
                     iterable.pop(index)
         values: List[Primitive] = []
@@ -299,7 +321,7 @@ class Evaluator:
     def _evaluate_object_comprehension(self, node: ast.ObjectComprehension, context: Context) -> Object:
         iterable = self(node.forspec.expr, context)
         if not isinstance(iterable, Array):
-            raise PysonnetRuntimeError(f"Unexpected type {stdtype(iterable)}, expected array")
+            raise PysonnetRuntimeError(f"Unexpected type {self._stdlib._type(iterable)}, expected array")
         context = context.clone()
         for local in node.locals_:
             context.bindings[local.bind.ident.name] = Lazy(local.bind.expr, context)
@@ -310,7 +332,7 @@ class Evaluator:
                 context.bindings[node.forspec.ident.name] = value
                 condition = self(ifspec.condition, context)
                 if not isinstance(condition, Boolean):
-                    raise PysonnetRuntimeError(f"Unpexpected type {stdtype(condition)}, expected boolean")
+                    raise PysonnetRuntimeError(f"Unpexpected type {self._stdlib._type(condition)}, expected boolean")
                 if not condition:
                     iterable.pop(index)
         obj = Object()
@@ -334,7 +356,7 @@ class Evaluator:
                 if isinstance(key_, Null):
                     continue
                 if not isinstance(key_, String):
-                    raise PysonnetRuntimeError(f"Field name must be a string, not {stdtype(key)}")
+                    raise PysonnetRuntimeError(f"Field name must be a string, not {self._stdlib._type(key)}")
                 key = key_
                 if key in obj:
                     raise PysonnetRuntimeError(f"Duplicate field name: {key}")
