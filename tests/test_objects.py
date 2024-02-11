@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 import pytest
 
 from pysonnet.objects import Array, Null, Number, Object, Primitive, String
@@ -50,6 +52,43 @@ def test_object_visibility() -> None:
     )
     assert String("a") in obj
     assert obj.to_json() == {"b": 2}
+
+
+@pytest.mark.parametrize(
+    "a,b,expected,expected_json",
+    [
+        (
+            Object(Object.Field(String("a"), Number(1))),
+            Object(Object.Field(String("b"), Number(2))),
+            Object(
+                Object.Field(String("a"), Number(1)),
+                Object.Field(String("b"), Number(2)),
+            ),
+            {"a": 1, "b": 2},
+        ),
+        (
+            Object(Object.Field(String("a"), Number(1))),
+            Object(Object.Field(String("a"), Number(2))),
+            Object(Object.Field(String("a"), Number(2))),
+            {"a": 2},
+        ),
+        (
+            Object(Object.Field(String("a"), Number(1))),
+            Object(Object.Field(String("a"), Number(2), inherit=True)),
+            Object(Object.Field(String("a"), Number(3))),
+            {"a": 3},
+        ),
+    ],
+)
+def test_object_addition(
+    a: Object,
+    b: Object,
+    expected: Object,
+    expected_json: Dict[str, Any],
+) -> None:
+    c = a + b
+    assert c == expected
+    assert c.to_json() == expected_json
 
 
 @pytest.mark.parametrize(

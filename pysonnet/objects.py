@@ -48,7 +48,15 @@ class Number(Generic[_Real_co], Primitive):
     def __add__(self: Number[float], other: Number[float]) -> Number[float]:
         ...
 
-    def __add__(self, other: Number[Union[bool, int, float]]) -> Number[Union[int, float]]:
+    @overload
+    def __add__(self, other: String) -> String:
+        ...
+
+    def __add__(
+        self, other: Union[Number[Union[bool, int, float]], String]
+    ) -> Union[Number[Union[int, float]], String]:
+        if isinstance(other, String):
+            return String(json.dumps(self.to_json())) + other
         return Number(self.value + other.value)
 
     @overload
@@ -186,6 +194,11 @@ class String(str, Primitive):
             other = String(json.dumps(other.to_json()))
         return String(super().__add__(other))
 
+    def __radd__(self, other: Union[Number, String, Array, Object]) -> String:  # type: ignore[override]
+        if not isinstance(other, String):
+            other = String(json.dumps(other.to_json()))
+        return other + self
+
     def __mod__(self, other: Primitive) -> String:
         if isinstance(other, Number):
             other = other.to_json()  # type: ignore[assignment]
@@ -223,10 +236,25 @@ class Object(Dict[String, Primitive], Primitive):
             field.key: (field.inherit, field.visibility or Object.Visibility.VISIBLE) for field in fields
         }
 
-    def add(self, field: Field) -> Object:
-        self[field.key] = field.value
-        self._properties[field.key] = (field.inherit, field.visibility or Object.Visibility.VISIBLE)
+    def add_field(self, field: Field) -> Object:
+        key = field.key
+        value = field.value
+        inherit = field.inherit
+        visibility = field.visibility or Object.Visibility.VISIBLE
+        if key in self:
+            if inherit:
+                value = self[key] + value  # type: ignore[operator]
+            if self.hidden(key) and visibility != Object.Visibility.FORCE_VISIBLE:
+                visibility = Object.Visibility.HIDDEN
+            inherit = self.inherit(key) and inherit
+        self[key] = value
+        self._properties[field.key] = (inherit, visibility)
         return self
+
+    def get_field(self, key: String) -> Optional[Field]:
+        if key in self:
+            return Object.Field(key, self[key], *self._properties[key])
+        return None
 
     def inherit(self, key: String) -> bool:
         return self._properties[key][0]
@@ -234,8 +262,28 @@ class Object(Dict[String, Primitive], Primitive):
     def visibility(self, key: String) -> Object.Visibility:
         return self._properties[key][1]
 
-    def __add__(self, other: Object) -> Object:
-        raise NotImplementedError
+    def hidden(self, key: String) -> bool:
+        return self.visibility(key) == Object.Visibility.HIDDEN
+
+    @property
+    def fields(self) -> List[Field]:
+        return [Object.Field(key, value, self.inherit(key), self.visibility(key)) for key, value in self.items()]
+
+    @overload
+    def __add__(self, other: Object) -> Object:  # type: ignore[override]
+        ...
+
+    @overload
+    def __add__(self, other: String) -> String:  # type: ignore[override]
+        ...
+
+    def __add__(self, other: Union[Object, String]) -> Union[Object, String]:  # type: ignore[override]
+        if isinstance(other, String):
+            return String(json.dumps(self.to_json())) + other
+        obj = Object(*self.fields)
+        for field in other.fields:
+            obj.add_field(field)
+        return obj
 
     def to_json(self) -> Dict[str, JsonPrimitive]:
         return {key: value.to_json() for key, value in self.items() if self.visibility(key) != Object.Visibility.HIDDEN}

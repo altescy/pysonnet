@@ -4,7 +4,7 @@ from typing import Dict, Optional, cast
 
 from pysonnet import ast
 from pysonnet.errors import PysonnetRuntimeError
-from pysonnet.objects import FALSE, NULL, TRUE, Array, Boolean, Function, Number, Object, Primitive, String
+from pysonnet.objects import FALSE, NULL, TRUE, Array, Boolean, Function, Null, Number, Object, Primitive, String
 from pysonnet.stdlib import STDLIB
 
 stdtype = cast(Function[String], STDLIB[String("type")])
@@ -47,6 +47,8 @@ class Evaluator:
         for member in node.members:
             if isinstance(member, ast.ObjectField):
                 key = self(member.key, context)
+                if isinstance(key, Null):
+                    continue
                 if not isinstance(key, String):
                     raise PysonnetRuntimeError(f"Field name must be a string, not {stdtype(key)}")
                 if key in objfields:
@@ -70,7 +72,7 @@ class Evaluator:
                 visibility = Object.Visibility.HIDDEN
             elif field.visibility == ast.ObjectField.Visibility.FORCE_VISIBLE:
                 visibility = Object.Visibility.FORCE_VISIBLE
-            obj.add(Object.Field(key, value, inherit, visibility))
+            obj.add_field(Object.Field(key, value, inherit, visibility))
         return obj
 
     def _evaluate_array(self, node: ast.Array, context: Context) -> Array:
@@ -85,12 +87,13 @@ class Evaluator:
                 return left + right
             if isinstance(left, Array) and isinstance(right, Array):
                 return left + right
-            if isinstance(left, Object) and isinstance(right, Object):
-                return left + right
             if isinstance(left, String) and isinstance(right, (Number, String, Array, Object)):
                 return left + right
             if isinstance(left, (Number, String, Array, Object)) and isinstance(right, String):
-                return left + right  # type: ignore[operator]
+                return left + right
+            if isinstance(left, Object) and isinstance(right, Object):
+                # TODO: handle errors
+                return left + right
             raise PysonnetRuntimeError(f"Unsupported operand types for +: {stdtype(left)} and {stdtype(right)}")
         if operator == ast.Binary.Operator.SUB:
             if isinstance(left, Number) and isinstance(right, Number):
@@ -186,6 +189,28 @@ class Evaluator:
         kwargs = {arg.ident.name: self(arg.expr) for arg in node.args if arg.ident is not None}
         return cast(Primitive, callee(*args, **kwargs))
 
+    def _evaluate_apply_brace(self, node: ast.ApplyBrace, context: Context) -> Primitive:
+        left = self(node.left, context)
+        right = self(node.right, context)
+        assert isinstance(left, Object) and isinstance(right, Object)
+        return left + right
+
+    def _evaluate_local(self, node: ast.LocalExpression, context: Context) -> Primitive:
+        context = context.clone()
+        for bind in node.binds:
+            context.bindings[bind.ident.name] = self(bind.expr, context)
+        return self(node.expr, context)
+
+    def _evaluate_if(self, node: ast.IfExpression, context: Context) -> Primitive:
+        condition = self(node.condition, context)
+        if not isinstance(condition, Boolean):
+            raise PysonnetRuntimeError(f"Condition must be a boolean, not {stdtype(condition)}")
+        if condition:
+            return self(node.then_expr, context)
+        if node.else_expr is not None:
+            return self(node.else_expr, context)
+        return NULL
+
     def _evaluate_self(self, node: ast.Self, context: Context) -> Primitive:
         if context.this is None:
             raise PysonnetRuntimeError("No object in context")
@@ -223,5 +248,14 @@ class Evaluator:
 
         if isinstance(node, ast.Apply):
             return self._evaluate_apply(node, context)
+
+        if isinstance(node, ast.ApplyBrace):
+            return self._evaluate_apply_brace(node, context)
+
+        if isinstance(node, ast.LocalExpression):
+            return self._evaluate_local(node, context)
+
+        if isinstance(node, ast.IfExpression):
+            return self._evaluate_if(node, context)
 
         raise PysonnetRuntimeError(f"Unsupported type: {type(node)}")
