@@ -1,6 +1,5 @@
-import copy
 import dataclasses
-from typing import Dict, Optional, cast
+from typing import Dict, Optional, Union, cast
 
 from pysonnet import ast
 from pysonnet.errors import PysonnetRuntimeError
@@ -11,14 +10,28 @@ stdtype = cast(Function[String], STDLIB[String("type")])
 
 
 @dataclasses.dataclass
+class Lazy:
+    node: ast.AST
+    context: "Context"
+
+    def clone(self) -> "Lazy":
+        return Lazy(self.node, self.context)
+
+
+@dataclasses.dataclass
 class Context:
-    bindings: Dict[str, Primitive] = dataclasses.field(default_factory=dict)
+    bindings: Dict[str, Union[Lazy, Primitive]] = dataclasses.field(default_factory=dict)
     dollar: Optional[Object] = None
     super_: Optional[Object] = None
     this: Optional[Object] = None
 
     def clone(self) -> "Context":
-        return copy.deepcopy(self)
+        return Context(
+            {k: v.clone() for k, v in self.bindings.items()},
+            self.dollar.clone() if self.dollar is not None else None,
+            self.super_.clone() if self.super_ is not None else None,
+            self.this.clone() if self.this is not None else None,
+        )
 
 
 class Evaluator:
@@ -36,10 +49,13 @@ class Evaluator:
 
     def _evaluate_identifier(self, node: ast.Identifier, context: Context) -> Primitive:
         if node.name in context.bindings:
-            return context.bindings[node.name]
+            value = context.bindings[node.name]
+            if isinstance(value, Lazy):
+                return self(value.node, value.context)
+            return value
         if node.name == "std":
             return STDLIB
-        raise PysonnetRuntimeError(f"Undefined identifier: {node.name}")
+        raise PysonnetRuntimeError(f"Unknown variable: {node.name}")
 
     def _evaluate_object(self, node: ast.Object, context: Context) -> Object:
         bindings = {}
@@ -182,7 +198,8 @@ class Evaluator:
         raise PysonnetRuntimeError(f"Unsupported binary operator: {operator}")
 
     def _evaluate_apply(self, node: ast.Apply, context: Context) -> Primitive:
-        callee = self(node.callee)
+        # TODO: handle tailstrict
+        callee = self(node.callee, context)
         if not isinstance(callee, Function):
             raise PysonnetRuntimeError(f"Cannot call {stdtype(callee)}")
         args = [self(arg.expr, context) for arg in node.args if arg.ident is None]
@@ -198,7 +215,7 @@ class Evaluator:
     def _evaluate_local(self, node: ast.LocalExpression, context: Context) -> Primitive:
         context = context.clone()
         for bind in node.binds:
-            context.bindings[bind.ident.name] = self(bind.expr, context)
+            context.bindings[bind.ident.name] = Lazy(bind.expr, context)
         return self(node.expr, context)
 
     def _evaluate_if(self, node: ast.IfExpression, context: Context) -> Primitive:
@@ -211,6 +228,42 @@ class Evaluator:
             return self(node.else_expr, context)
         return NULL
 
+    def _evaluate_function(self, node: ast.Function, context: Context) -> Function:
+        expr = node.expr
+        context = context.clone()
+
+        def _execute_function(*args: Primitive, **kwargs: Primitive) -> Primitive:
+            # check parameter names
+            unknown_param_names = set(kwargs) - set(param.ident.name for param in node.params)
+            if unknown_param_names:
+                raise PysonnetRuntimeError(f"Unknown parameters: {', '.join(unknown_param_names)}")
+            # check parameter count
+            if len(args) + len(kwargs) > len(node.params):
+                raise PysonnetRuntimeError(f"Too many parameters, expected {len(node.params)}")
+            # check parameter duplication
+            args_ = dict(zip((param.ident.name for param in node.params), args))
+            duplicate_param_names = set(args_) & set(kwargs)
+            if duplicate_param_names:
+                raise PysonnetRuntimeError(f"Duplicate parameters: {', '.join(duplicate_param_names)}")
+            # merge args into kwargs
+            kwargs.update(args_)
+            del args
+            # fill missing kwargs with default values
+            expected_param_names = set(param.ident.name for param in node.params)
+            missing_kwparam_names = expected_param_names - set(kwargs)
+            default_kwparam_nodes = {
+                param.ident.name: param.default for param in node.params if param.default is not None
+            }
+            if set(missing_kwparam_names) - set(default_kwparam_nodes):
+                raise PysonnetRuntimeError(f"Missing parameters: {', '.join(missing_kwparam_names)}")
+            default_kwargs = {name: Lazy(default_kwparam_nodes[name], context) for name in missing_kwparam_names}
+            # update context
+            context.bindings.update(kwargs)
+            context.bindings.update(default_kwargs)
+            return self(expr, context)
+
+        return Function(_execute_function)
+
     def _evaluate_self(self, node: ast.Self, context: Context) -> Primitive:
         if context.this is None:
             raise PysonnetRuntimeError("No object in context")
@@ -220,6 +273,10 @@ class Evaluator:
         if context.dollar is None:
             raise PysonnetRuntimeError("No object in context")
         return context.dollar
+
+    def _evaluate_error(self, node: ast.Error, context: Context) -> Primitive:
+        message = self(node.expr, context)
+        raise PysonnetRuntimeError(str(message))
 
     def __call__(self, node: ast.AST, context: Optional[Context] = None) -> Primitive:
         if context is None:
@@ -257,5 +314,11 @@ class Evaluator:
 
         if isinstance(node, ast.IfExpression):
             return self._evaluate_if(node, context)
+
+        if isinstance(node, ast.Function):
+            return self._evaluate_function(node, context)
+
+        if isinstance(node, ast.Error):
+            return self._evaluate_error(node, context)
 
         raise PysonnetRuntimeError(f"Unsupported type: {type(node)}")

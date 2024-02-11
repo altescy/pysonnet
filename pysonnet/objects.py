@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import copy
 import enum
 import json
 from typing import Callable, Dict, Generic, List, NamedTuple, Optional, TypeVar, Union, overload
 
 from pysonnet.types import JsonPrimitive
 
+_Self = TypeVar("_Self", bound="Primitive")
 _Real_co = TypeVar("_Real_co", bound=Union[bool, int, float], covariant=True)
 _Real_contra = TypeVar("_Real_contra", bound=Union[bool, int, float], contravariant=True)
 _PrimitiveType = TypeVar("_PrimitiveType", bound="Primitive")
@@ -21,6 +23,9 @@ class Primitive:
     def to_json(self) -> JsonPrimitive:
         """Convert the object to a JSON-serializable object."" """
         raise NotImplementedError
+
+    def clone(self: _Self) -> _Self:
+        return copy.deepcopy(self)
 
 
 class Null(Primitive):

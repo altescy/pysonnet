@@ -3,6 +3,7 @@ from typing import Any
 
 import pytest
 
+from pysonnet.errors import PysonnetRuntimeError
 from pysonnet.evaluator import Evaluator
 from pysonnet.lexer import Lexer
 from pysonnet.parser import Parser
@@ -126,12 +127,83 @@ from pysonnet.parser import Parser
             """,
             {"odd": True},
         ),
+        (
+            """
+            local a = error 'error message';
+            {}
+            """,
+            {},
+        ),
+        (
+            """
+            local isEven = function(x) x % 2 == 0;
+            isEven(2)
+            """,
+            True,
+        ),
+        (
+            """
+            local isEven = function(x) x % 2 == 0;
+            isEven(x=2)
+            """,
+            True,
+        ),
+        (
+            """
+            local increment(x, delta=1) = x + delta;
+            increment(2)
+            """,
+            3,
+        ),
+        (
+            """
+            local increment(x, delta=1) = x + delta;
+            increment(2, 2)
+            """,
+            4,
+        ),
+        (
+            """
+            local increment(x, delta=1) = x + delta;
+            increment(x=2, delta=2)
+            """,
+            4,
+        ),
     ],
 )
 def test_evaluate(inputs: str, expected: Any) -> None:
     parser = Parser(Lexer(StringIO(inputs)))
     evaluator = Evaluator()
-    ast = parser.parse()
-    assert ast is not None
-    result = evaluator(ast).to_json()
+    node = parser.parse()
+    assert node is not None
+    result = evaluator(node).to_json()
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "inputs, error_msg",
+    [
+        (
+            """
+            error "error message"
+            """,
+            "error message",
+        ),
+        (
+            """
+            local x = { a: a };
+            local a = 1;
+            x
+            """,
+            "Unknown variable: a",
+        ),
+    ],
+)
+def test_evaluate_error(inputs: str, error_msg: str) -> None:
+    parser = Parser(Lexer(StringIO(inputs)))
+    evaluator = Evaluator()
+    node = parser.parse()
+    assert node is not None
+    with pytest.raises(PysonnetRuntimeError) as exc_info:
+        evaluator(node)
+    assert str(exc_info.value) == error_msg
