@@ -2,7 +2,7 @@ import argparse
 import json
 import sys
 from io import StringIO
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, TextIO
 
 from pysonnet import __version__
 from pysonnet.ast import asdict
@@ -29,7 +29,8 @@ def _show_errors(errors: List[str]) -> None:
 
 def main(prog: Optional[str] = None) -> None:
     parser = argparse.ArgumentParser(prog=prog)
-    parser.add_argument("input", nargs="?", type=argparse.FileType("r"), help="input file")
+    parser.add_argument("input", nargs="?", type=str, help="input file")
+    parser.add_argument("-e", "--exec", action="store_true")
     parser.add_argument("-V", "--ext-str", type=str, action="append", default=[], help="external string variable")
     parser.add_argument("--ast", action="store_true", help="show the abstract syntax tree")
     parser.add_argument("--indent", type=int, default=None, help="indentation level for JSON output")
@@ -37,14 +38,22 @@ def main(prog: Optional[str] = None) -> None:
     parser.add_argument("-v", "--version", action="version", version=f"%(prog)s {__version__}")
     args = parser.parse_args()
 
+    textio: TextIO
     if args.input is None:
         if not sys.stdin.isatty():
-            args.input = StringIO(sys.stdin.read())
+            textio = StringIO(sys.stdin.read())
         else:
             parser.error("the following arguments are required: input")
+    else:
+        if args.exec:
+            textio = StringIO(args.input)
+        else:
+            textio = open(args.input)
 
-    jp = Parser(Lexer(args.input))
-    ast = jp.parse()
+    with textio:
+        jp = Parser(Lexer(textio))
+        ast = jp.parse()
+
     if not ast:
         _show_errors(jp.errors)
         sys.exit(1)
