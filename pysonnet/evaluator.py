@@ -3,17 +3,13 @@ from typing import Dict, List, Mapping, Optional, Union, cast
 
 from pysonnet import ast
 from pysonnet.errors import PysonnetRuntimeError
-from pysonnet.objects import FALSE, NULL, TRUE, Array, Boolean, Function, Null, Number, Object, Primitive, String
+from pysonnet.objects import FALSE, NULL, TRUE, Array, Boolean, Function, Lazy, Null, Number, Object, Primitive, String
 from pysonnet.stdlib import StdLib
 
 
-@dataclasses.dataclass
-class Lazy:
-    node: ast.AST
-    context: "Context"
-
-    def clone(self) -> "Lazy":
-        return Lazy(self.node, self.context)
+def _make_lazy(evaluator: "Evaluator", node: ast.AST, context: "Context") -> Lazy:
+    # specify default args to capture the values
+    return Lazy(lambda evalualtor=evaluator, node=node, context=context: evaluator(node, context))  # type: ignore[misc]
 
 
 @dataclasses.dataclass
@@ -53,7 +49,7 @@ class Evaluator:
         if node.name in context.bindings:
             value = context.bindings[node.name]
             if isinstance(value, Lazy):
-                return self(value.node, value.context)
+                value = value()
             return value
         if node.name == "std":
             return self._stdobj
@@ -224,12 +220,19 @@ class Evaluator:
         raise PysonnetRuntimeError(f"Unsupported binary operator: {operator}")
 
     def _evaluate_apply(self, node: ast.Apply, context: Context) -> Primitive:
-        # TODO: handle tailstrict
         callee = self(node.callee, context)
         if not isinstance(callee, Function):
             raise PysonnetRuntimeError(f"Cannot call {self._stdlib._type(callee)}")
-        args = [self(arg.expr, context) for arg in node.args if arg.ident is None]
-        kwargs = {arg.ident.name: self(arg.expr) for arg in node.args if arg.ident is not None}
+        args = [
+            self(arg.expr, context) if node.tailstrict else _make_lazy(self, arg.expr, context)
+            for arg in node.args
+            if arg.ident is None
+        ]
+        kwargs = {
+            arg.ident.name: self(arg.expr) if node.tailstrict else _make_lazy(self, arg.expr, context)
+            for arg in node.args
+            if arg.ident is not None
+        }
         return cast(Primitive, callee(*args, **kwargs))
 
     def _evaluate_apply_brace(self, node: ast.ApplyBrace, context: Context) -> Primitive:
@@ -241,7 +244,7 @@ class Evaluator:
     def _evaluate_local(self, node: ast.LocalExpression, context: Context) -> Primitive:
         context = context.clone()
         for bind in node.binds:
-            context.bindings[bind.ident.name] = Lazy(bind.expr, context)
+            context.bindings[bind.ident.name] = _make_lazy(self, bind.expr, context)
         return self(node.expr, context)
 
     def _evaluate_if(self, node: ast.IfExpression, context: Context) -> Primitive:
@@ -282,7 +285,9 @@ class Evaluator:
             }
             if set(missing_kwparam_names) - set(default_kwparam_nodes):
                 raise PysonnetRuntimeError(f"Missing parameters: {', '.join(missing_kwparam_names)}")
-            default_kwargs = {name: Lazy(default_kwparam_nodes[name], context) for name in missing_kwparam_names}
+            default_kwargs = {
+                name: _make_lazy(self, default_kwparam_nodes[name], context) for name in missing_kwparam_names
+            }
             # update context
             context.bindings.update(kwargs)
             context.bindings.update(default_kwargs)
@@ -324,7 +329,7 @@ class Evaluator:
             raise PysonnetRuntimeError(f"Unexpected type {self._stdlib._type(iterable)}, expected array")
         context = context.clone()
         for local in node.locals_:
-            context.bindings[local.bind.ident.name] = Lazy(local.bind.expr, context)
+            context.bindings[local.bind.ident.name] = _make_lazy(self, local.bind.expr, context)
         compspecs = [compspec for compspec in node.compspecs]
         while compspecs and isinstance(compspecs[0], ast.IfSpec):
             ifspec = cast(ast.IfSpec, compspecs.pop(0))

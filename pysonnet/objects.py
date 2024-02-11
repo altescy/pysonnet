@@ -28,6 +28,23 @@ class Primitive:
         return copy.deepcopy(self)
 
 
+class Lazy(Primitive):
+    def __init__(self, constructor: Callable[[], Primitive]) -> None:
+        self._constructor = constructor
+        self._value: Optional[Primitive] = None
+
+    def __call__(self) -> Primitive:
+        if self._value is None:
+            self._value = self._constructor()
+        return self._value
+
+    def __str__(self) -> str:
+        return "lazy"
+
+    def clone(self) -> "Lazy":
+        return self
+
+
 class Null(Primitive):
     def to_json(self) -> None:
         return None
@@ -205,6 +222,8 @@ class String(str, Primitive):
         return other + self
 
     def __mod__(self, other: Primitive) -> String:
+        if isinstance(other, Lazy):
+            other = other()
         if isinstance(other, Number):
             other = other.to_json()  # type: ignore[assignment]
         if isinstance(other, Array):

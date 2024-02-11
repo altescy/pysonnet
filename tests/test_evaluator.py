@@ -211,6 +211,12 @@ from pysonnet.parser import Parser
             """,
             {"a": 1, "b": 1},
         ),
+        (
+            """
+            local foo(x) = 42; foo(error "xxx")
+            """,
+            42,
+        ),
     ],
 )
 def test_evaluate(inputs: str, expected: Any) -> None:
@@ -238,6 +244,12 @@ def test_evaluate(inputs: str, expected: Any) -> None:
             x
             """,
             "Unknown variable: a",
+        ),
+        (
+            """
+            local foo(x) = 42; foo(error "xxx") tailstrict
+            """,
+            "xxx",
         ),
     ],
 )

@@ -1,22 +1,43 @@
-from typing import Mapping, TypeVar, Union
+import inspect
+from functools import wraps
+from typing import Any, Callable, Mapping, TypeVar, Union
 
 from pysonnet.errors import PysonnetRuntimeError
-from pysonnet.objects import NULL, Array, Boolean, Function, Null, Number, Object, Primitive, String
+from pysonnet.objects import NULL, Array, Boolean, Function, Lazy, Null, Number, Object, Primitive, String
 
 _T = TypeVar("_T", bound=Primitive)
 _T_co = TypeVar("_T_co", covariant=True, bound=Primitive)
 _T_contra = TypeVar("_T_contra", contravariant=True, bound=Primitive)
 
 
+def _eval_args(func: Callable[..., _T]) -> Callable[..., _T]:
+    signature = inspect.signature(func)
+
+    @wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> _T:
+        try:
+            bound_args = signature.bind(*args, **kwargs)
+            bound_args.apply_defaults()
+            params = bound_args.arguments
+        except TypeError:
+            raise PysonnetRuntimeError(f"Invalid arguments of {func.__name__}")
+        evaluated_params = {k: v() if isinstance(v, Lazy) else v for k, v in params.items()}
+        return func(**evaluated_params)
+
+    return wrapper
+
+
 class StdLib:
     def __init__(self, ext_vars: Mapping[str, str] = {}) -> None:
         self._ext_vars = ext_vars
 
+    @_eval_args
     def _ext_var(self, name: String) -> String:
         if name not in self._ext_vars:
             raise PysonnetRuntimeError(f"Undefined external variable: {name}")
         return String(self._ext_vars[name])
 
+    @_eval_args
     def _type(self, value: Primitive) -> String:
         if isinstance(value, Null):
             return String("null")
@@ -34,6 +55,7 @@ class StdLib:
             return String("function")
         raise TypeError(type(value))
 
+    @_eval_args
     def _length(self, value: Primitive) -> Number[int]:
         if isinstance(value, String):
             return Number(len(value))
@@ -43,6 +65,7 @@ class StdLib:
             return Number(len(value))
         raise PysonnetRuntimeError(f"Cannot get length of {self._type(value)}")
 
+    @_eval_args
     def _slice(
         self,
         iterable: Array[_T],
@@ -57,6 +80,7 @@ class StdLib:
         )
         return Array(iterable[s])
 
+    @_eval_args
     def _range(
         self,
         start: Number[int],
@@ -74,32 +98,41 @@ class StdLib:
             ]
         )
 
+    @_eval_args
     def _filter(self, func: Function, value: Array[_T]) -> Array[_T]:
         return Array([item for item in value if func(item)])
 
+    @_eval_args
     def _map(self, func: Function, value: Primitive) -> Primitive:
         if isinstance(value, Array):
             return Array(map(func, value))
         raise PysonnetRuntimeError(f"Cannot map over {self._type(value)}")
 
+    @_eval_args
     def _make_array(self, size: int, func: Function[_T]) -> Array[_T]:
         return Array([func(Number(i)) for i in range(size)])
 
+    @_eval_args
     def _join(self, delimiter: String, value: Array[String]) -> String:
         return String(delimiter.join(value))
 
+    @_eval_args
     def _codepoint(self, value: String) -> Number[int]:
         return Number(ord(value))
 
+    @_eval_args
     def _abs(self, value: Number) -> Number:
         return abs(Number(value))  # type: ignore[type-var]
 
+    @_eval_args
     def _max(self, a: Number, b: Number) -> Number:
         return Number(max(a, b))
 
+    @_eval_args
     def _min(self, a: Number, b: Number) -> Number:
         return Number(min(a, b))
 
+    @_eval_args
     def _clamp(self, a: Number, minVal: Number, maxVal: Number) -> Number:
         return Number(max(min(a, maxVal), minVal))
 
