@@ -393,6 +393,7 @@ class Evaluator:
 
     def _evaluate_import(self, node: ast.Import, context: Context) -> Primitive:
         # TODO: relative import
+        del context
         filename = Path(node.filename)
         if not filename.exists():
             raise PysonnetRuntimeError(f"File not found: {filename}")
@@ -403,7 +404,7 @@ class Evaluator:
             ast = jp.parse()
         if not ast:
             raise PysonnetRuntimeError(f"Failed to parse {filename}")
-        return self(ast, context)
+        return self(ast)
 
     def _evaluate_importstr(self, node: ast.Importstr, context: Context) -> String:
         # TODO: relative import
