@@ -74,7 +74,7 @@ class StdLib:
         inc_hidden: Boolean = TRUE,
     ) -> Primitive:
         value = o.get(f)
-        if (not inc_hidden and o.hidden(f)) or value is None:
+        if value is None or (not inc_hidden and o.hidden(f)):
             return default
         return value
 
