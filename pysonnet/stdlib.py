@@ -3,7 +3,7 @@ from functools import wraps
 from typing import Any, Callable, Mapping, TypeVar, Union
 
 from pysonnet.errors import PysonnetRuntimeError
-from pysonnet.objects import NULL, Array, Boolean, Function, Lazy, Null, Number, Object, Primitive, String
+from pysonnet.objects import NULL, TRUE, Array, Boolean, Function, Lazy, Null, Number, Object, Primitive, String
 
 _T = TypeVar("_T", bound=Primitive)
 _T_co = TypeVar("_T_co", covariant=True, bound=Primitive)
@@ -32,38 +32,55 @@ class StdLib:
         self._ext_vars = ext_vars
 
     @_eval_args
-    def _ext_var(self, name: String) -> String:
-        if name not in self._ext_vars:
-            raise PysonnetRuntimeError(f"Undefined external variable: {name}")
-        return String(self._ext_vars[name])
+    def _ext_var(self, x: String) -> String:
+        if x not in self._ext_vars:
+            raise PysonnetRuntimeError(f"Undefined external variable: {x}")
+        return String(self._ext_vars[x])
 
     @_eval_args
-    def _type(self, value: Primitive) -> String:
-        if isinstance(value, Null):
+    def _type(self, x: Primitive) -> String:
+        if isinstance(x, Null):
             return String("null")
-        if isinstance(value, Boolean):
+        if isinstance(x, Boolean):
             return String("boolean")
-        if isinstance(value, Number):
+        if isinstance(x, Number):
             return String("number")
-        if isinstance(value, String):
+        if isinstance(x, String):
             return String("string")
-        if isinstance(value, Array):
+        if isinstance(x, Array):
             return String("array")
-        if isinstance(value, Object):
+        if isinstance(x, Object):
             return String("object")
-        if isinstance(value, Function):
+        if isinstance(x, Function):
             return String("function")
-        raise TypeError(type(value))
+        raise TypeError(type(x))
 
     @_eval_args
-    def _length(self, value: Primitive) -> Number[int]:
-        if isinstance(value, String):
-            return Number(len(value))
-        if isinstance(value, Array):
-            return Number(len(value))
-        if isinstance(value, Object):
-            return Number(len(value))
-        raise PysonnetRuntimeError(f"Cannot get length of {self._type(value)}")
+    def _length(self, x: Primitive) -> Number[int]:
+        if isinstance(x, String):
+            return Number(len(x))
+        if isinstance(x, Array):
+            return Number(len(x))
+        if isinstance(x, Object):
+            return Number(len(x))
+        raise PysonnetRuntimeError(f"Cannot get length of {self._type(x)}")
+
+    @_eval_args
+    def _get(
+        self,
+        o: Object,
+        f: String,
+        default: Primitive = NULL,
+        inc_hidden: Boolean = TRUE,
+    ) -> Primitive:
+        value = o.get(f)
+        if (not inc_hidden and o.hidden(f)) or value is None:
+            return default
+        return value
+
+    @_eval_args
+    def _object_has(self, o: Object, f: String) -> Boolean:
+        return Boolean(f in o and not o.hidden(f))
 
     @_eval_args
     def _slice(
@@ -141,6 +158,8 @@ class StdLib:
             Object.Field(String("extVar"), Function(self._ext_var)),
             Object.Field(String("type"), Function(self._type)),
             Object.Field(String("length"), Function(self._length)),
+            Object.Field(String("get"), Function(self._get)),
+            Object.Field(String("objectHas"), Function(self._object_has)),
             Object.Field(String("slice"), Function(self._slice)),
             Object.Field(String("range"), Function(self._range)),
             Object.Field(String("map"), Function(self._map)),
