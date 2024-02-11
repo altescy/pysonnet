@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import sys
 from io import StringIO
 from typing import Dict, List, Optional, TextIO
@@ -13,11 +14,15 @@ from pysonnet.parser import Parser
 
 def _parse_ext_vars(inputs: List[str]) -> Dict[str, str]:
     ext_vars: Dict[str, str] = {}
-    for value in inputs:
-        if "=" not in value:
-            print(f"--ext-str argument must be in the form of NAME=VALUE: {value}", file=sys.stderr)
-            sys.exit(1)
-        name, value = value.split("=", 1)
+    for variable in inputs:
+        if "=" not in variable:
+            name = variable
+            value = os.getenv(variable)
+            if value is None:
+                print(f"Environment variable {variable} was undefined.", file=sys.stderr)
+                sys.exit(1)
+        else:
+            name, value = variable.split("=", 1)
         ext_vars[name] = value
     return ext_vars
 
