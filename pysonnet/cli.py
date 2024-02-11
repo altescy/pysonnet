@@ -6,6 +6,7 @@ from typing import List, Optional
 
 from pysonnet import __version__
 from pysonnet.ast import asdict
+from pysonnet.evaluator import Evaluator
 from pysonnet.lexer import Lexer
 from pysonnet.parser import Parser
 
@@ -38,3 +39,7 @@ def main(prog: Optional[str] = None) -> None:
 
     if args.ast:
         print(json.dumps(asdict(ast), indent=args.indent, ensure_ascii=args.ensure_ascii))
+
+    evaluator = Evaluator()
+    value = evaluator(ast)
+    print(json.dumps(value.to_json(), indent=args.indent, ensure_ascii=args.ensure_ascii))
