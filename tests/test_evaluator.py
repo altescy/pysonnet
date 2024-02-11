@@ -205,6 +205,12 @@ from pysonnet.parser import Parser
             """,
             {"key12": 2, "key13": 3, "key21": 2, "key23": 6},
         ),
+        (
+            """
+            {a: 1} + {b: super.a}
+            """,
+            {"a": 1, "b": 1},
+        ),
     ],
 )
 def test_evaluate(inputs: str, expected: Any) -> None:

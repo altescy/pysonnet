@@ -97,7 +97,11 @@ class Evaluator:
     def _evaluate_binary(self, node: ast.Binary, context: Context) -> Primitive:
         operator = node.operator
         left = self(node.left, context)
+        if isinstance(left, Object):
+            context = context.clone()
+            context.super_ = left
         right = self(node.right, context)
+        del context
         if operator == ast.Binary.Operator.ADD:
             if isinstance(left, Number) and isinstance(right, Number):
                 return left + right
@@ -310,6 +314,9 @@ class Evaluator:
                 if not condition:
                     iterable.pop(index)
         obj = Object()
+        context.this = obj
+        if context.dollar is None:
+            context.dollar = obj
         for value in iterable:
             context.bindings[node.forspec.ident.name] = value
 
@@ -337,13 +344,18 @@ class Evaluator:
 
     def _evaluate_self(self, node: ast.Self, context: Context) -> Primitive:
         if context.this is None:
-            raise PysonnetRuntimeError("No object in context")
+            raise PysonnetRuntimeError("Can't use self outside of an object.")
         return context.this
 
     def _evaluate_dollar(self, node: ast.Dollar, context: Context) -> Primitive:
         if context.dollar is None:
-            raise PysonnetRuntimeError("No object in context")
+            raise PysonnetRuntimeError("No top-level object found.")
         return context.dollar
+
+    def _evaluate_super(self, node: ast.Super, context: Context) -> Primitive:
+        if context.super_ is None:
+            raise PysonnetRuntimeError("Attempt to use super when there is no super class.")
+        return context.super_
 
     def _evaluate_error(self, node: ast.Error, context: Context) -> Primitive:
         message = self(node.expr, context)
@@ -361,6 +373,9 @@ class Evaluator:
 
         if isinstance(node, ast.Dollar):
             return self._evaluate_dollar(node, context)
+
+        if isinstance(node, ast.Super):
+            return self._evaluate_super(node, context)
 
         if isinstance(node, ast.Object):
             return self._evaluate_object(node, context)
