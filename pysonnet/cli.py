@@ -3,6 +3,7 @@ import json
 import os
 import sys
 from io import StringIO
+from pathlib import Path
 from typing import Dict, List, Optional, TextIO
 
 from pysonnet import __version__
@@ -44,6 +45,7 @@ def main(prog: Optional[str] = None) -> None:
     args = parser.parse_args()
 
     textio: TextIO
+    filename: Optional[Path] = None
     if args.input is None:
         if not sys.stdin.isatty():
             textio = StringIO(sys.stdin.read())
@@ -54,6 +56,7 @@ def main(prog: Optional[str] = None) -> None:
             textio = StringIO(args.input)
         else:
             textio = open(args.input)
+            filename = Path(args.input)
 
     with textio:
         jp = Parser(Lexer(textio))
@@ -68,6 +71,6 @@ def main(prog: Optional[str] = None) -> None:
 
     ext_vars = _parse_ext_vars(args.ext_str)
 
-    evaluator = Evaluator(ext_vars)
+    evaluator = Evaluator(ext_vars, filename)
     value = evaluator(ast)
     print(json.dumps(value.to_json(), indent=args.indent, ensure_ascii=args.ensure_ascii))
