@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, TextIO
 
 from pysonnet import __version__
 from pysonnet.ast import asdict
+from pysonnet.errors import PysonnetRuntimeError
 from pysonnet.evaluator import Evaluator
 from pysonnet.lexer import Lexer
 from pysonnet.parser import Parser
@@ -71,6 +72,11 @@ def main(prog: Optional[str] = None) -> None:
 
     ext_vars = _parse_ext_vars(args.ext_str)
 
-    evaluator = Evaluator(ext_vars, filename)
-    value = evaluator(ast)
+    try:
+        evaluator = Evaluator(ext_vars, filename)
+        value = evaluator(ast)
+    except PysonnetRuntimeError as e:
+        print("Runtime Error:", e.args[0], file=sys.stderr)
+        sys.exit(1)
+
     print(json.dumps(value.to_json(), indent=args.indent, ensure_ascii=args.ensure_ascii))
