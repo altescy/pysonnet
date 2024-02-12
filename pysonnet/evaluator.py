@@ -32,9 +32,17 @@ class Context:
 
 
 class Evaluator:
-    def __init__(self, ext_vars: Mapping[str, str] = {}) -> None:
+    def __init__(
+        self,
+        ext_vars: Mapping[str, str] = {},
+        filename: Optional[Path] = None,
+    ) -> None:
+        self._ext_vars = ext_vars
+        self._filename = filename
         self._stdlib = StdLib(ext_vars)
         self._stdobj = self._stdlib.as_object()
+        self._rootdir = filename.parent if filename else Path("")
+        self._stdobj.add_field(Object.Field(String("thisFile"), String(self._filename)))
 
     def _evaluate_literal(self, node: ast.LiteralAST, context: Context) -> Primitive:
         del context
@@ -392,9 +400,8 @@ class Evaluator:
         raise PysonnetRuntimeError(str(message))
 
     def _evaluate_import(self, node: ast.Import, context: Context) -> Primitive:
-        # TODO: relative import
         del context
-        filename = Path(node.filename)
+        filename = self._rootdir / Path(node.filename)
         if not filename.exists():
             raise PysonnetRuntimeError(f"File not found: {filename}")
         if not filename.is_file():
@@ -404,12 +411,12 @@ class Evaluator:
             ast = jp.parse()
         if not ast:
             raise PysonnetRuntimeError(f"Failed to parse {filename}")
-        return self(ast)
+        evaluator = Evaluator(self._ext_vars, filename)
+        return evaluator(ast)
 
     def _evaluate_importstr(self, node: ast.Importstr, context: Context) -> String:
-        # TODO: relative import
         del context
-        filename = Path(node.filename)
+        filename = self._rootdir / Path(node.filename)
         if not filename.exists():
             raise PysonnetRuntimeError(f"File not found: {filename}")
         if not filename.is_file():
@@ -417,9 +424,8 @@ class Evaluator:
         return String(filename.read_text())
 
     def _evaluate_importbin(self, node: ast.Importbin, context: Context) -> Array[Number[int]]:
-        # TODO: relative import
         del context
-        filename = Path(node.filename)
+        filename = self._rootdir / Path(node.filename)
         if not filename.exists():
             raise PysonnetRuntimeError(f"File not found: {filename}")
         if not filename.is_file():
