@@ -1,4 +1,5 @@
 import dataclasses
+from os import PathLike
 from pathlib import Path
 from typing import Dict, List, Mapping, Optional, Union, cast
 
@@ -34,14 +35,16 @@ class Context:
 class Evaluator:
     def __init__(
         self,
-        ext_vars: Mapping[str, str] = {},
-        filename: Optional[Path] = None,
+        ext_vars: Optional[Mapping[str, str]] = None,
+        filename: Optional[Union[str, PathLike]] = None,
     ) -> None:
+        ext_vars = ext_vars or {}
+        filename = Path(filename) if filename else None
         self._ext_vars = ext_vars
         self._filename = filename
         self._stdlib = StdLib(ext_vars)
         self._stdobj = self._stdlib.as_object()
-        self._rootdir = filename.parent if filename else Path("")
+        self._rootdir = self._filename.parent if self._filename else Path("")
         self._stdobj.add_field(Object.Field(String("thisFile"), String(self._filename)))
 
     def _evaluate_literal(self, node: ast.LiteralAST, context: Context) -> Primitive:
