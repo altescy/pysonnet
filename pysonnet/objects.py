@@ -33,10 +33,16 @@ class Lazy(Primitive):
         self._constructor = constructor
 
     def __call__(self) -> Primitive:
-        return self._constructor()
+        value = self._constructor()
+        while isinstance(value, Lazy):
+            value = value()
+        return value
 
     def __str__(self) -> str:
         return json.dumps(self.to_json())
+
+    def __repr__(self) -> str:
+        return f"Lazy({self._constructor})"
 
     def to_json(self) -> JsonPrimitive:
         return self().to_json()
