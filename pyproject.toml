@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "pysonnet"
 version = "0.0.1"
-description = "📜 Jsonnet language written in pure Python"
+description = "📜 A pure Python implementation of the Jsonnet language"
 authors = ["altescy <altescy@fastmail.com>"]
 license = "MIT License"
 readme = "README.md"
