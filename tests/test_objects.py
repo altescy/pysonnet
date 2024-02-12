@@ -119,6 +119,17 @@ def test_object_addition(
             ),
             String('Number: 1, Float: 3.1, String: hello, Array: [1, 2], Object: {"a": 5}'),
         ),
+        (
+            String("mysql2://%(user)s@%(host)s:%(port)s/%(db)s?%(option)s"),
+            Object(
+                Object.Field(String("user"), String("root")),
+                Object.Field(String("host"), String("localhost")),
+                Object.Field(String("port"), Number(3306)),
+                Object.Field(String("db"), String("test")),
+                Object.Field(String("option"), String("charset=utf8")),
+            ),
+            String("mysql2://root@localhost:3306/test?charset=utf8"),
+        ),
     ],
 )
 def test_string_format(

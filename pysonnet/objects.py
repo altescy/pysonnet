@@ -39,7 +39,10 @@ class Lazy(Primitive):
         return value
 
     def __str__(self) -> str:
-        return json.dumps(self.to_json())
+        value = self.to_json()
+        if isinstance(value, str):
+            return value
+        return json.dumps(value)
 
     def __repr__(self) -> str:
         return f"Lazy({self._constructor})"

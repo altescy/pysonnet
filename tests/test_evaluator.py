@@ -247,6 +247,21 @@ from pysonnet.parser import Parser
                 "person3": {"name": "Alice", "welcome": "Hello Alice!"},
             },
         ),
+        (
+            """
+            local mysql_url_base = 'mysql://%(user)s@%(host)s:%(port)s/%(db)s?%(option)s';
+            local mysql_writable(host, port, db, option) = std.format(mysql_url_base, { user: 'writable_user', host: host, port: port, db: db, option: option });
+            local mysql_readonly(host, port, db, option) = std.format(mysql_url_base, { user: 'readonly_user', host: host, port: port, db: db, option: option });
+            {
+                writable_uri: mysql_writable("localhost", 3306, "mydb", "charset=utf8"),
+                readonly_uri: mysql_readonly("localhost", 3306, "mydb", "charset=utf8"),
+            }
+            """,
+            {
+                "writable_uri": "mysql://writable_user@localhost:3306/mydb?charset=utf8",
+                "readonly_uri": "mysql://readonly_user@localhost:3306/mydb?charset=utf8",
+            },
+        ),
     ],
 )
 def test_evaluate(inputs: str, expected: Any) -> None:
@@ -255,6 +270,7 @@ def test_evaluate(inputs: str, expected: Any) -> None:
     node = parser.parse()
     assert node is not None
     result = evaluator(node).to_json()
+    print("result", result)
     assert result == expected
 
 
