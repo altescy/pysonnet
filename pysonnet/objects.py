@@ -31,12 +31,9 @@ class Primitive:
 class Lazy(Primitive):
     def __init__(self, constructor: Callable[[], Primitive]) -> None:
         self._constructor = constructor
-        self._value: Optional[Primitive] = None
 
     def __call__(self) -> Primitive:
-        if self._value is None:
-            self._value = self._constructor()
-        return self._value
+        return self._constructor()
 
     def __str__(self) -> str:
         return json.dumps(self.to_json())
@@ -263,20 +260,28 @@ class Object(Dict[String, Primitive], Primitive):
             field.key: (field.inherit, field.visibility or Object.Visibility.VISIBLE) for field in fields
         }
 
-    def add_field(self, field: Field) -> Object:
+    def add_field(self, field: Field) -> None:
         key = field.key
         value = field.value
         inherit = field.inherit
         visibility = field.visibility or Object.Visibility.VISIBLE
         if key in self:
             if inherit:
-                value = self[key] + value  # type: ignore[operator]
+                current_value = self[key]
+
+                def _add(left: Primitive = current_value, right: Primitive = value) -> Primitive:
+                    if isinstance(left, Lazy):
+                        left = left()
+                    if isinstance(right, Lazy):
+                        right = right()
+                    return left + right  # type: ignore[operator, no-any-return]
+
+                value = Lazy(_add)
             if self.hidden(key) and visibility != Object.Visibility.FORCE_VISIBLE:
                 visibility = Object.Visibility.HIDDEN
             inherit = self.inherit(key) and inherit
         self[key] = value
         self._properties[key] = (inherit, visibility)
-        return self
 
     def get_field(self, key: String) -> Optional[Field]:
         if key in self:
@@ -307,7 +312,7 @@ class Object(Dict[String, Primitive], Primitive):
     def __add__(self, other: Union[Object, String]) -> Union[Object, String]:  # type: ignore[override]
         if isinstance(other, String):
             return String(json.dumps(self.to_json())) + other
-        obj = Object(*self.fields)
+        obj = self
         for field in other.fields:
             obj.add_field(field)
         return obj

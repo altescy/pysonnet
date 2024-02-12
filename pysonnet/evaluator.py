@@ -45,7 +45,7 @@ class Evaluator:
         self._stdlib = StdLib(ext_vars)
         self._stdobj = self._stdlib.as_object()
         self._rootdir = self._filename.parent if self._filename else Path("")
-        self._stdobj.add_field(Object.Field(String("thisFile"), String(self._filename)))
+        self._stdobj.add_field(Object.Field(String("thisFile"), String(self._filename or "")))
 
     def _evaluate_literal(self, node: ast.LiteralAST, context: Context) -> Primitive:
         del context
@@ -83,7 +83,7 @@ class Evaluator:
                     raise PysonnetRuntimeError(f"Duplicate field: {key}")
                 objfields[key] = member
             elif isinstance(member, ast.ObjectLocal):
-                bindings[member.bind.ident.name] = self(member.bind.expr, context)
+                bindings[member.bind.ident.name] = _make_lazy(self, member.bind.expr, context)
             elif isinstance(member, ast.Assert):
                 condition = self(member.condition, context)
                 if not isinstance(condition, Boolean):
@@ -105,7 +105,7 @@ class Evaluator:
         if context.dollar is None:
             context.dollar = obj
         for key, field in objfields.items():
-            value = self(field.expr, context)
+            value = _make_lazy(self, field.expr, context)
             inherit = field.inherit
             visibility = Object.Visibility.VISIBLE
             if field.visibility == ast.ObjectField.Visibility.HIDDEN:
@@ -125,6 +125,10 @@ class Evaluator:
             context = context.clone()
             context.super_ = left
         right = self(node.right, context)
+        if isinstance(left, Lazy):
+            left = left()
+        if isinstance(right, Lazy):
+            right = right()
         del context
         if operator == ast.Binary.Operator.ADD:
             if isinstance(left, Number) and isinstance(right, Number):
@@ -247,6 +251,8 @@ class Evaluator:
 
     def _evaluate_apply(self, node: ast.Apply, context: Context) -> Primitive:
         callee = self(node.callee, context)
+        if isinstance(callee, Lazy):
+            callee = callee()
         if not isinstance(callee, Function):
             raise PysonnetRuntimeError(f"Cannot call {self._stdlib._type(callee)}")
         args = [
@@ -262,10 +268,7 @@ class Evaluator:
         return cast(Primitive, callee(*args, **kwargs))
 
     def _evaluate_apply_brace(self, node: ast.ApplyBrace, context: Context) -> Primitive:
-        left = self(node.left, context)
-        right = self(node.right, context)
-        assert isinstance(left, Object) and isinstance(right, Object)
-        return left + right
+        return self._evaluate_binary(ast.Binary(ast.Binary.Operator.ADD, node.left, node.right), context)
 
     def _evaluate_local(self, node: ast.LocalExpression, context: Context) -> Primitive:
         context = context.clone()
@@ -275,6 +278,8 @@ class Evaluator:
 
     def _evaluate_if(self, node: ast.IfExpression, context: Context) -> Primitive:
         condition = self(node.condition, context)
+        if isinstance(condition, Lazy):
+            condition = condition()
         if not isinstance(condition, Boolean):
             raise PysonnetRuntimeError(f"Condition must be a boolean, not {self._stdlib._type(condition)}")
         if condition:
@@ -323,6 +328,8 @@ class Evaluator:
 
     def _evaluate_array_comprehension(self, node: ast.ArrayComprehension, context: Context) -> Array:
         iterable = self(node.forspec.expr, context)
+        if isinstance(iterable, Lazy):
+            iterable = iterable()
         if not isinstance(iterable, Array):
             raise PysonnetRuntimeError(f"Unexpected type {self._stdlib._type(iterable)}, expected array")
         context = context.clone()
@@ -332,6 +339,8 @@ class Evaluator:
             for index, value in enumerate(iterable):
                 context.bindings[node.forspec.ident.name] = value
                 condition = self(ifspec.condition, context)
+                if isinstance(condition, Lazy):
+                    condition = condition()
                 if not isinstance(condition, Boolean):
                     raise PysonnetRuntimeError(f"Unpexpected type {self._stdlib._type(condition)}, expected boolean")
                 if not condition:
@@ -351,6 +360,8 @@ class Evaluator:
 
     def _evaluate_object_comprehension(self, node: ast.ObjectComprehension, context: Context) -> Object:
         iterable = self(node.forspec.expr, context)
+        if isinstance(iterable, Lazy):
+            iterable = iterable()
         if not isinstance(iterable, Array):
             raise PysonnetRuntimeError(f"Unexpected type {self._stdlib._type(iterable)}, expected array")
         context = context.clone()
@@ -362,6 +373,8 @@ class Evaluator:
             for index, value in enumerate(iterable):
                 context.bindings[node.forspec.ident.name] = value
                 condition = self(ifspec.condition, context)
+                if isinstance(condition, Lazy):
+                    condition = condition()
                 if not isinstance(condition, Boolean):
                     raise PysonnetRuntimeError(f"Unpexpected type {self._stdlib._type(condition)}, expected boolean")
                 if not condition:
@@ -384,6 +397,8 @@ class Evaluator:
                     obj.add_field(Object.Field(key, value))
             else:
                 key_ = self(node.key, context)
+                if isinstance(key_, Lazy):
+                    key_ = key_()
                 if isinstance(key_, Null):
                     continue
                 if not isinstance(key_, String):
@@ -416,6 +431,8 @@ class Evaluator:
 
     def _evaluate_assert(self, node: ast.AssertExpression, context: Context) -> Primitive:
         condition = self(node.assert_.condition, context)
+        if isinstance(condition, Lazy):
+            condition = condition()
         if not isinstance(condition, Boolean):
             raise PysonnetRuntimeError(f"Unpexpected type {self._stdlib._type(condition)}, expected boolean")
         if not condition:

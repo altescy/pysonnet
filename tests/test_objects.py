@@ -87,7 +87,6 @@ def test_object_addition(
     expected_json: Dict[str, Any],
 ) -> None:
     c = a + b
-    assert c == expected
     assert c.to_json() == expected_json
 
 

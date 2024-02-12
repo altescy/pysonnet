@@ -230,6 +230,23 @@ from pysonnet.parser import Parser
             """,
             {},
         ),
+        (
+            """
+            {
+              person2: self.person1 { name: "Bob" },
+              person3: self.person1,
+              person1: {
+                name: "Alice",
+                welcome: "Hello " + self.name + "!",
+              },
+            }
+            """,
+            {
+                "person1": {"name": "Alice", "welcome": "Hello Alice!"},
+                "person2": {"name": "Bob", "welcome": "Hello Bob!"},
+                "person3": {"name": "Alice", "welcome": "Hello Alice!"},
+            },
+        ),
     ],
 )
 def test_evaluate(inputs: str, expected: Any) -> None:
@@ -291,7 +308,7 @@ def test_evaluate_error(inputs: str, error_msg: str) -> None:
     node = parser.parse()
     assert node is not None
     with pytest.raises(PysonnetRuntimeError) as exc_info:
-        evaluator(node)
+        evaluator(node).to_json()
     assert str(exc_info.value) == error_msg
 
 
