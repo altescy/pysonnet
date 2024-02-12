@@ -217,6 +217,19 @@ from pysonnet.parser import Parser
             """,
             42,
         ),
+        (
+            """
+            { assert true }
+            """,
+            {},
+        ),
+        (
+            """
+            assert true;
+            {}
+            """,
+            {},
+        ),
     ],
 )
 def test_evaluate(inputs: str, expected: Any) -> None:
@@ -248,6 +261,25 @@ def test_evaluate(inputs: str, expected: Any) -> None:
         (
             """
             local foo(x) = 42; foo(error "xxx") tailstrict
+            """,
+            "xxx",
+        ),
+        (
+            """
+            { assert false }
+            """,
+            "Object assertion failed",
+        ),
+        (
+            """
+            { assert false : "xxx"}
+            """,
+            "xxx",
+        ),
+        (
+            """
+            assert false : "xxx";
+            {}
             """,
             "xxx",
         ),

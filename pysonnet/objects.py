@@ -39,7 +39,10 @@ class Lazy(Primitive):
         return self._value
 
     def __str__(self) -> str:
-        return "lazy"
+        return json.dumps(self.to_json())
+
+    def to_json(self) -> JsonPrimitive:
+        return self().to_json()
 
     def clone(self) -> "Lazy":
         return self

@@ -84,6 +84,18 @@ class Evaluator:
                 objfields[key] = member
             elif isinstance(member, ast.ObjectLocal):
                 bindings[member.bind.ident.name] = self(member.bind.expr, context)
+            elif isinstance(member, ast.Assert):
+                condition = self(member.condition, context)
+                if not isinstance(condition, Boolean):
+                    raise PysonnetRuntimeError(f"Unpexpected type {self._stdlib._type(condition)}, expected boolean")
+                if not condition:
+                    message: Primitive
+                    if member.message is not None:
+                        message = self(member.message, context)
+                    else:
+                        message = String("Object assertion failed")
+                    raise PysonnetRuntimeError(str(message))
+                continue
             else:
                 raise PysonnetRuntimeError(f"Unsupported object member: {type(member)}")
         obj = Object()
@@ -402,6 +414,19 @@ class Evaluator:
         message = self(node.expr, context)
         raise PysonnetRuntimeError(str(message))
 
+    def _evaluate_assert(self, node: ast.AssertExpression, context: Context) -> Primitive:
+        condition = self(node.assert_.condition, context)
+        if not isinstance(condition, Boolean):
+            raise PysonnetRuntimeError(f"Unpexpected type {self._stdlib._type(condition)}, expected boolean")
+        if not condition:
+            message: Primitive
+            if node.assert_.message is None:
+                message = String("Assertion failed")
+            else:
+                message = self(node.assert_.message, context)
+            raise PysonnetRuntimeError(str(message))
+        return self(node.expr, context)
+
     def _evaluate_import(self, node: ast.Import, context: Context) -> Primitive:
         del context
         filename = self._rootdir / Path(node.filename)
@@ -486,6 +511,9 @@ class Evaluator:
 
         if isinstance(node, ast.Error):
             return self._evaluate_error(node, context)
+
+        if isinstance(node, ast.AssertExpression):
+            return self._evaluate_assert(node, context)
 
         if isinstance(node, ast.Import):
             return self._evaluate_import(node, context)
