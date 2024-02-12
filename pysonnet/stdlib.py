@@ -16,6 +16,7 @@ def _eval_args(func: Callable[..., _T]) -> Callable[..., _T]:
 
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> _T:
+        # TODO: check types
         try:
             bound_args = signature.bind(*args, **kwargs)
             bound_args.apply_defaults()
@@ -159,6 +160,10 @@ class StdLib:
         return String(a)
 
     @_eval_args
+    def _format(self, str: String, vals: Union[Null, Number, String, Array, Object]) -> String:
+        return str % vals
+
+    @_eval_args
     def _trace(self, str: String, rest: _T) -> _T:
         print("TRACE:", str, file=sys.stderr)
         return rest
@@ -181,5 +186,6 @@ class StdLib:
             Object.Field(String("min"), Function(self._min)),
             Object.Field(String("clamp"), Function(self._clamp)),
             Object.Field(String("toString"), Function(self._to_string)),
+            Object.Field(String("format"), Function(self._format)),
             Object.Field(String("trace"), Function(self._trace)),
         )
