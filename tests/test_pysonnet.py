@@ -2,7 +2,7 @@ import pysonnet
 
 
 def test_version() -> None:
-    assert pysonnet.__version__ == "0.1.0"
+    assert pysonnet.__version__ == "0.0.1"
 
 
 def test_loads() -> None:
