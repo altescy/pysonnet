@@ -1,7 +1,7 @@
 import dataclasses
 from os import PathLike
 from pathlib import Path
-from typing import Dict, List, Mapping, Optional, Union, cast
+from typing import Callable, Dict, List, Mapping, Optional, Union, cast
 
 from pysonnet import ast
 from pysonnet.errors import PysonnetRuntimeError
@@ -9,6 +9,7 @@ from pysonnet.lexer import Lexer
 from pysonnet.objects import FALSE, NULL, TRUE, Array, Boolean, Function, Lazy, Null, Number, Object, Primitive, String
 from pysonnet.parser import Parser
 from pysonnet.stdlib import StdLib
+from pysonnet.types import JsonPrimitive
 
 
 def _make_lazy(evaluator: "Evaluator", node: ast.AST, context: "Context") -> Lazy:
@@ -35,14 +36,21 @@ class Context:
 class Evaluator:
     def __init__(
         self,
-        ext_vars: Optional[Mapping[str, str]] = None,
         filename: Optional[Union[str, PathLike]] = None,
+        *,
+        ext_vars: Optional[Mapping[str, str]] = None,
+        native_callbacks: Optional[Mapping[str, Union[Callable[..., JsonPrimitive], Function]]] = None,
     ) -> None:
         ext_vars = ext_vars or {}
         filename = Path(filename) if filename else None
-        self._ext_vars = ext_vars
+        callbacks = {
+            name: callback if isinstance(callback, Function) else Function.from_native_function(callback)
+            for name, callback in (native_callbacks or {}).items()
+        }
         self._filename = filename
-        self._stdlib = StdLib(ext_vars)
+        self._ext_vars = ext_vars
+        self._native_callbacks = callbacks
+        self._stdlib = StdLib(ext_vars, callbacks)
         self._stdobj = self._stdlib.as_object()
         self._rootdir = self._filename.parent if self._filename else Path("")
         self._stdobj.add_field(Object.Field(String("thisFile"), String(self._filename or "")))
@@ -465,7 +473,11 @@ class Evaluator:
             ast = jp.parse()
         if not ast:
             raise PysonnetRuntimeError(f"Failed to parse {filename}")
-        evaluator = Evaluator(self._ext_vars, filename)
+        evaluator = Evaluator(
+            filename,
+            ext_vars=self._ext_vars,
+            native_callbacks=self._native_callbacks,
+        )
         return evaluator(ast)
 
     def _evaluate_importstr(self, node: ast.Importstr, context: Context) -> String:

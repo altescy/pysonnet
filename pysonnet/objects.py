@@ -27,6 +27,22 @@ class Primitive:
     def clone(self: _Self) -> _Self:
         return copy.deepcopy(self)
 
+    @staticmethod
+    def from_json_primitive(value: JsonPrimitive) -> Primitive:
+        if isinstance(value, bool):
+            return Boolean(value)
+        if isinstance(value, (int, float)):
+            return Number(value)
+        if isinstance(value, str):
+            return String(value)
+        if value is None:
+            return Null()
+        if isinstance(value, list):
+            return Array([Primitive.from_json_primitive(v) for v in value])
+        if isinstance(value, dict):
+            return Object(*(Object.Field(key, Primitive.from_json_primitive(val)) for key, val in value.items()))
+        raise ValueError(f"Invalid JSON primitive: {value}")
+
 
 class Lazy(Primitive):
     def __init__(self, constructor: Callable[[], Primitive]) -> None:
@@ -342,6 +358,15 @@ class Function(Generic[_PrimitiveType], Primitive):
 
     def to_json(self) -> None:
         raise NotImplementedError
+
+    @staticmethod
+    def from_native_function(func: Callable[..., JsonPrimitive]) -> Function[Primitive]:
+        def wrapper(*args: Primitive, **kwargs: Primitive) -> Primitive:
+            native_args = [arg.to_json() for arg in args]
+            native_kwargs = {key: value.to_json() for key, value in kwargs.items()}
+            return Primitive.from_json_primitive(func(*native_args, **native_kwargs))
+
+        return Function(wrapper)
 
 
 # Constants
