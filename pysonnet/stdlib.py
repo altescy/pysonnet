@@ -1,4 +1,5 @@
 import inspect
+import json
 import sys
 from functools import wraps
 from typing import Any, Callable, Mapping, TypeVar, Union
@@ -168,6 +169,22 @@ class StdLib:
         print("TRACE:", str, file=sys.stderr)
         return rest
 
+    @_eval_args
+    def _manifest_json_ex(
+        self,
+        value: Primitive,
+        indent: String,
+        newline: String = String("\n"),
+        key_val_sep: String = String(": "),
+    ) -> String:
+        return String(
+            json.dumps(
+                value.to_json(),
+                indent=str(indent),
+                separators=(str(key_val_sep), str(newline)),
+            )
+        )
+
     def as_object(self) -> Object:
         return Object(
             Object.Field(String("extVar"), Function(self._ext_var)),
@@ -188,4 +205,5 @@ class StdLib:
             Object.Field(String("toString"), Function(self._to_string)),
             Object.Field(String("format"), Function(self._format)),
             Object.Field(String("trace"), Function(self._trace)),
+            Object.Field(String("manifestJsonEx"), Function(self._manifest_json_ex)),
         )
