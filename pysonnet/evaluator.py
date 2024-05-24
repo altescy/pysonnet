@@ -26,9 +26,9 @@ class Context:
     def clone(self) -> "Context":
         return Context(
             {k: v.clone() for k, v in self.bindings.items()},
-            self.dollar.clone() if self.dollar is not None else None,
+            self.dollar,
             self.super_.clone() if self.super_ is not None else None,
-            self.this.clone() if self.this is not None else None,
+            self.this,
         )
 
 
@@ -105,7 +105,14 @@ class Evaluator:
         if context.dollar is None:
             context.dollar = obj
         for key, field in objfields.items():
-            value = _make_lazy(self, field.expr, context)
+            _context = context.clone()
+            if isinstance(field.expr, ast.Object) and _context.super_:
+                super_ = _context.super_.get(key)
+                if super_ and isinstance(super_, Lazy):
+                    super_ = super_()
+                if super_ is None or isinstance(super_, Object):
+                    _context.super_ = super_
+            value = _make_lazy(self, field.expr, _context)
             inherit = field.inherit
             visibility = Object.Visibility.VISIBLE
             if field.visibility == ast.ObjectField.Visibility.HIDDEN:
@@ -121,15 +128,14 @@ class Evaluator:
     def _evaluate_binary(self, node: ast.Binary, context: Context) -> Primitive:
         operator = node.operator
         left = self(node.left, context)
+        if isinstance(left, Lazy):
+            left = left()
         if isinstance(left, Object):
             context = context.clone()
             context.super_ = left
         right = self(node.right, context)
-        if isinstance(left, Lazy):
-            left = left()
         if isinstance(right, Lazy):
             right = right()
-        del context
         if operator == ast.Binary.Operator.ADD:
             if isinstance(left, Number) and isinstance(right, Number):
                 return left + right
@@ -234,19 +240,22 @@ class Evaluator:
                 f"Unsupported operand types for in: {self._stdlib._type(left)} and {self._stdlib._type(right)}"
             )
         if operator == ast.Binary.Operator.INDEX:
+            value: Primitive
             if isinstance(left, Array) and isinstance(right, Number):
                 try:
-                    return cast(Primitive, left[right.value])
+                    value = cast(Primitive, left[right.value])
                 except IndexError:
                     raise PysonnetRuntimeError(f"Index out of range, not within [0, {len(left)})")
-            if isinstance(left, Object):
+            elif isinstance(left, Object):
                 if not isinstance(right, String):
                     raise PysonnetRuntimeError(f"Unsupported type for index: {type(right)}, expected string")
                 try:
-                    return left[right]
+                    value = left[right]
                 except KeyError:
                     raise PysonnetRuntimeError(f"Field does not exist: {right}")
-            raise PysonnetRuntimeError(f"Unsupported operand types for index: {type(left)} and {type(right)}")
+            else:
+                raise PysonnetRuntimeError(f"Unsupported operand types for index: {type(left)} and {type(right)}")
+            return value
         raise PysonnetRuntimeError(f"Unsupported binary operator: {operator}")
 
     def _evaluate_apply(self, node: ast.Apply, context: Context) -> Primitive:

@@ -262,6 +262,19 @@ from pysonnet.parser import Parser
                 "readonly_uri": "mysql://readonly_user@localhost:3306/mydb?charset=utf8",
             },
         ),
+        (
+            """
+            { foo: { name: 'foo'} } { foo+: {"name": "prefix_" + super["name"]} }
+            """,
+            {"foo": {"name": "prefix_foo"}},
+        ),
+        (
+            """
+            local x = { y: { a: { b: { c: 'foo' } } } };
+            x.y { a+: { z: {}, d: super['b'] { e: 'bar' } } }
+            """,
+            {"a": {"z": {}, "b": {"c": "foo"}, "d": {"c": "foo", "e": "bar"}}},
+        ),
     ],
 )
 def test_evaluate(inputs: str, expected: Any) -> None:

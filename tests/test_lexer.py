@@ -35,7 +35,7 @@ _EXAPLES = [
           sq: 'single quoted',
           dqb: @"c:\path\to\u0066.txt",
           sqb: @'c:\path\to\u0066.txt',
-          escape: "\" \' \\ \b \f \n \r \t \u1234",
+          escape: "\" \' \\ \b \f \n \r \t \u0041",
           block: |||
             this is a text block
             \ \n \t \u0066
@@ -62,7 +62,7 @@ _EXAPLES = [
             Token(TokenType.COMMA, ","),
             Token(TokenType.IDENT, "escape"),
             Token(TokenType.COLON, ":"),
-            Token(TokenType.STRING, r"\" \' \\ \b \f \n \r \t \u1234"),
+            Token(TokenType.STRING, "\" ' \\ \b \f \n \r \t A"),
             Token(TokenType.COMMA, ","),
             Token(TokenType.IDENT, "block"),
             Token(TokenType.COLON, ":"),

@@ -181,7 +181,9 @@ class StdLib:
             json.dumps(
                 value.to_json(),
                 indent=str(indent),
-                separators=(str(key_val_sep), str(newline)),
+                separators=(",", str(key_val_sep)),
+                sort_keys=True,
+                ensure_ascii=False,
             )
         )
 

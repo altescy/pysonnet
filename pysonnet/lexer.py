@@ -7,6 +7,17 @@ _IDENT_CONT = _IDENT_START + "0123456789"
 _HEXDIGITS = "0123456789abcdefABCDEF"
 _HORIZ_WS = " \t\r"
 _INDENT_WS = " \t"
+_ESCAPED_CHARS = {
+    '"': '"',
+    "'": "'",
+    "\\": "\\",
+    "/": "/",
+    "b": "\b",
+    "f": "\f",
+    "n": "\n",
+    "r": "\r",
+    "t": "\t",
+}
 
 
 class Lexer:
@@ -109,13 +120,16 @@ class Lexer:
             elif not verbatim and self._ch == "\\":
                 next_ch = self._peek()
                 if next_ch in ('"', "'", "\\", "/", "b", "f", "n", "r", "t"):
-                    literal += self._ch + self._read_char()
-                    self._read_char()
+                    literal += _ESCAPED_CHARS[next_ch]
+                    self._read_char(2)
                 elif next_ch == "u":
                     if all(self._peek(i + 2) in _HEXDIGITS for i in range(4)):
+                        self._read_char(2)  # skip "\u"
+                        codepoint = ""
                         for ch in range(4):
-                            literal += self._ch
+                            codepoint += self._ch
                             self._read_char()
+                        literal += chr(int(codepoint, 16))
                     else:
                         raise ValueError(f"unexpected character: {self._ch}")
             else:
