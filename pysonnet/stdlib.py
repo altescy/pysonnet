@@ -31,14 +31,25 @@ def _eval_args(func: Callable[..., _T]) -> Callable[..., _T]:
 
 
 class StdLib:
-    def __init__(self, ext_vars: Mapping[str, str] = {}) -> None:
+    def __init__(
+        self,
+        ext_vars: Mapping[str, str] = {},
+        native_callbacks: Mapping[str, Callable[..., Primitive]] = {},
+    ) -> None:
         self._ext_vars = ext_vars
+        self._native_callbacks = native_callbacks
 
     @_eval_args
     def _ext_var(self, x: String) -> String:
         if x not in self._ext_vars:
             raise PysonnetRuntimeError(f"Undefined external variable: {x}")
         return String(self._ext_vars[x])
+
+    @_eval_args
+    def _native(self, name: String) -> Function[Primitive]:
+        if name not in self._native_callbacks:
+            raise PysonnetRuntimeError(f"Undefined native callback: {name}")
+        return Function(self._native_callbacks[name])
 
     @_eval_args
     def _type(self, x: Primitive) -> String:
@@ -190,6 +201,7 @@ class StdLib:
     def as_object(self) -> Object:
         return Object(
             Object.Field(String("extVar"), Function(self._ext_var)),
+            Object.Field(String("native"), Function(self._native)),
             Object.Field(String("type"), Function(self._type)),
             Object.Field(String("length"), Function(self._length)),
             Object.Field(String("get"), Function(self._get)),

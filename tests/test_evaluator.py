@@ -345,8 +345,21 @@ def test_ext_vars() -> None:
     ext_vars = {"a": "1"}
     inputs = "{ a: std.extVar('a') }"
     parser = Parser(Lexer(StringIO(inputs)))
-    evaluator = Evaluator(ext_vars)
+    evaluator = Evaluator(ext_vars=ext_vars)
     node = parser.parse()
     assert node is not None
     value = evaluator(node)
     assert value.to_json() == {"a": "1"}
+
+
+def test_native_callbacks() -> None:
+    def concat(a: str, b: str) -> str:
+        return a + b
+
+    inputs = "{ a: std.native('concat')('a', 'b') }"
+    parser = Parser(Lexer(StringIO(inputs)))
+    evaluator = Evaluator(native_callbacks={"concat": concat})
+    node = parser.parse()
+    assert node is not None
+    value = evaluator(node)
+    assert value.to_json() == {"a": "ab"}
