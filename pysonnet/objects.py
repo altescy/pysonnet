@@ -240,7 +240,7 @@ class String(str, Primitive):
         return String(super().__mod__(other))
 
     def to_json(self) -> str:
-        return self
+        return str(self)
 
 
 class Array(Generic[_PrimitiveType], List[_PrimitiveType], Primitive):
