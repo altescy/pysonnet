@@ -14,10 +14,6 @@ from pysonnet.lexer import Lexer
 from pysonnet.parser import Parser
 
 
-def provide_vault(url: str, name: str) -> str:
-    return f"{url}/{name}"
-
-
 def _parse_ext_vars(inputs: List[str]) -> Dict[str, str]:
     ext_vars: Dict[str, str] = {}
     for variable in inputs:
@@ -77,11 +73,7 @@ def main(prog: Optional[str] = None) -> None:
     ext_vars = _parse_ext_vars(args.ext_str)
 
     try:
-        evaluator = Evaluator(
-            filename,
-            ext_vars=ext_vars,
-            native_callbacks={"provide.vault": provide_vault},
-        )
+        evaluator = Evaluator(filename, ext_vars=ext_vars)
         value = evaluator(ast)
     except PysonnetRuntimeError as e:
         print("Runtime Error:", e.args[0], file=sys.stderr)
