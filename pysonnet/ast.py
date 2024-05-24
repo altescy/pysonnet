@@ -11,8 +11,7 @@ _S_co = TypeVar("_S_co", covariant=True, bound=_PRIMITIVE)
 
 
 @dataclasses.dataclass(frozen=True)
-class AST(abc.ABC, Generic[_T_co]):
-    ...
+class AST(abc.ABC, Generic[_T_co]): ...
 
 
 @dataclasses.dataclass(frozen=True)
@@ -31,18 +30,15 @@ class Null(LiteralAST[Literal[None]]):
 
 
 @dataclasses.dataclass(frozen=True)
-class Boolean(LiteralAST[bool]):
-    ...
+class Boolean(LiteralAST[bool]): ...
 
 
 @dataclasses.dataclass(frozen=True)
-class Number(LiteralAST[Union[int, float]]):
-    ...
+class Number(LiteralAST[Union[int, float]]): ...
 
 
 @dataclasses.dataclass(frozen=True)
-class String(LiteralAST[str]):
-    ...
+class String(LiteralAST[str]): ...
 
 
 @dataclasses.dataclass(frozen=True)
@@ -137,18 +133,15 @@ class Binary(Generic[_T_co], AST[_T_co]):
 
 
 @dataclasses.dataclass(frozen=True)
-class Self(AST[Dict[str, Any]]):
-    ...
+class Self(AST[Dict[str, Any]]): ...
 
 
 @dataclasses.dataclass(frozen=True)
-class Dollar(AST[Dict[str, Any]]):
-    ...
+class Dollar(AST[Dict[str, Any]]): ...
 
 
 @dataclasses.dataclass(frozen=True)
-class Super(AST[Dict[str, Any]]):
-    ...
+class Super(AST[Dict[str, Any]]): ...
 
 
 @dataclasses.dataclass(frozen=True)
