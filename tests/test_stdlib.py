@@ -79,6 +79,80 @@ from pysonnet.parser import Parser
         ('std.parseJson(\'{"foo": "bar"}\')', {"foo": "bar"}),
         ("std.encodeUTF8('test')", [116, 101, 115, 116]),
         ("std.decodeUTF8([116, 101, 115, 116])", "test"),
+        # manifest functions
+        (
+            """
+            local config = {
+                main: { a: "1", b: "2" },
+                sections: {
+                    s1: {x: "11", y: "22", z: "33"},
+                    s2: {p: "yes", q: ""},
+                    empty: {},
+                }
+            };
+            std.manifestIni(config)
+            """,
+            """a = 1
+b = 2
+[empty]
+[s1]
+x = 11
+y = 22
+z = 33
+[s2]
+p = yes
+q =""",
+        ),
+        (
+            """
+            local config = {
+              b: ['foo', 'bar'],
+              c: true,
+              d: null,
+              e: { f1: false, f2: 42 },
+            };
+            std.manifestPython(config)
+            """,
+            "{'b': ['foo', 'bar'], 'c': True, 'd': None, 'e': {'f1': False, 'f2': 42}}",
+        ),
+        (
+            """
+            local config = {
+                b: ["foo", "bar"],
+                c: true,
+                d: null,
+                e: { f1: false, f2: 42 },
+            };
+            std.manifestPythonVars(config)
+            """,
+            "b = ['foo', 'bar']\nc = True\nd = None\ne = {'f1': False, 'f2': 42}",
+        ),
+        (
+            'std.manifestJson( { x: [1, 2, 3, true, false, null, "string"], y: { a: 1, b: 2, c: [1, 2] }, })',
+            """{
+    "x": [
+        1,
+        2,
+        3,
+        true,
+        false,
+        null,
+        "string"
+    ],
+    "y": {
+        "a": 1,
+        "b": 2,
+        "c": [
+            1,
+            2
+        ]
+    }
+}""",
+        ),
+        (
+            'std.manifestJsonMinified( { x: [1, 2, 3, true, false, null, "string"], y: { a: 1, b: 2, c: [1, 2] }, })',
+            '{"x":[1,2,3,true,false,null,"string"],"y":{"a":1,"b":2,"c":[1,2]}}',
+        ),
     ],
 )
 def test_evaluate(inputs: str, expected: Any) -> None:

@@ -4,7 +4,7 @@ import math
 import shlex
 import sys
 from functools import wraps
-from typing import Any, Callable, Mapping, TypeVar, Union
+from typing import Any, Callable, List, Mapping, TypeVar, Union
 
 from pysonnet.errors import PysonnetRuntimeError
 from pysonnet.objects import FALSE, NULL, TRUE, Array, Boolean, Function, Lazy, Null, Number, Object, Primitive, String
@@ -448,6 +448,52 @@ class StdLib:
         return String("".join(chr(i.value) for i in arr))
 
     @_eval_args
+    def _manifest_ini(self, ini: Object) -> String:
+        def body_lines(body: Primitive) -> Array[String]:
+            if isinstance(body, Lazy):
+                body = body()
+            if not isinstance(body, Object):
+                raise PysonnetRuntimeError("Invalid data format")
+            lines: List[str] = []
+            for key, val in sorted(body.items()):
+                if isinstance(val, Lazy):
+                    val = val()
+                if isinstance(val, Array):
+                    lines.extend(f"{key} = {item}" for item in val)
+                else:
+                    lines.append(f"{key} = {val}")
+            return Array([String(line.strip()) for line in lines])
+
+        def section_lines(name: str, body: Primitive) -> Array[String]:
+            if isinstance(body, Lazy):
+                body = body()
+            if not isinstance(body, Object):
+                raise PysonnetRuntimeError("Invalid data format")
+            return Array([String(f"[{name}]")] + body_lines(body))
+
+        main_obj = ini.get(String("main"), Object())
+        sections_obj = ini.get(String("sections"), Object())
+        if isinstance(main_obj, Lazy):
+            main_obj = main_obj()
+        if isinstance(sections_obj, Lazy):
+            sections_obj = sections_obj()
+        if not isinstance(main_obj, Object) or not isinstance(sections_obj, Object):
+            raise PysonnetRuntimeError("Invalid data format")
+
+        main = body_lines(main_obj)
+        sections = Array([line for name, body in sorted(sections_obj.items()) for line in section_lines(name, body)])
+        return String("\n".join(main + sections))
+
+    @_eval_args
+    def _manifest_python(self, v: Primitive) -> String:
+        return String(repr(v.to_json()))
+
+    @_eval_args
+    def _manifest_python_vars(self, conf: Object) -> String:
+        lines = [f"{key} = {repr(val.to_json())}" for key, val in conf.items()]
+        return String("\n".join(lines))
+
+    @_eval_args
     def _manifest_json_ex(
         self,
         value: Primitive,
@@ -460,6 +506,30 @@ class StdLib:
                 value.to_json(),
                 indent=str(indent),
                 separators=(",", str(key_val_sep)),
+                sort_keys=True,
+                ensure_ascii=False,
+            )
+        )
+
+    @_eval_args
+    def _manifest_json(self, value: Primitive) -> String:
+        return String(
+            json.dumps(
+                value.to_json(),
+                indent=4,
+                separators=(",", ": "),
+                sort_keys=True,
+                ensure_ascii=False,
+            )
+        )
+
+    @_eval_args
+    def _manifest_json_minified(self, value: Primitive) -> String:
+        return String(
+            json.dumps(
+                value.to_json(),
+                indent=None,
+                separators=(",", ":"),
                 sort_keys=True,
                 ensure_ascii=False,
             )
@@ -538,5 +608,10 @@ class StdLib:
             Object.Field(String("parseJson"), Function(self._parse_json)),
             Object.Field(String("encodeUTF8"), Function(self._encode_utf8)),
             Object.Field(String("decodeUTF8"), Function(self._decode_utf8)),
+            Object.Field(String("manifestIni"), Function(self._manifest_ini)),
+            Object.Field(String("manifestPython"), Function(self._manifest_python)),
+            Object.Field(String("manifestPythonVars"), Function(self._manifest_python_vars)),
             Object.Field(String("manifestJsonEx"), Function(self._manifest_json_ex)),
+            Object.Field(String("manifestJson"), Function(self._manifest_json)),
+            Object.Field(String("manifestJsonMinified"), Function(self._manifest_json_minified)),
         )
