@@ -1,13 +1,29 @@
 import inspect
+import itertools
 import json
 import math
 import shlex
 import sys
-from functools import wraps
-from typing import Any, Callable, List, Mapping, TypeVar, Union
+from functools import reduce, wraps
+from typing import Any, Callable, List, Mapping, Set, TypeVar, Union
 
 from pysonnet.errors import PysonnetRuntimeError
-from pysonnet.objects import FALSE, NULL, TRUE, Array, Boolean, Function, Lazy, Null, Number, Object, Primitive, String
+from pysonnet.objects import (
+    FALSE,
+    NULL,
+    TRUE,
+    Array,
+    Boolean,
+    Function,
+    Lazy,
+    Null,
+    Number,
+    Object,
+    Optional,
+    Primitive,
+    String,
+)
+from pysonnet.types import JsonPrimitive
 
 _T = TypeVar("_T", bound=Primitive)
 _T_co = TypeVar("_T_co", covariant=True, bound=Primitive)
@@ -102,57 +118,6 @@ class StdLib:
     @_eval_args
     def _object_has(self, o: Object, f: String) -> Boolean:
         return Boolean(f in o and not o.hidden(f))
-
-    @_eval_args
-    def _slice(
-        self,
-        iterable: Array[_T],
-        start: Union[Number[int], Null],
-        end: Union[Number[int], Null],
-        step: Union[Number[int], Null],
-    ) -> Array[_T]:
-        s = slice(
-            start.value if isinstance(start, Number) else None,
-            end.value if isinstance(end, Number) else None,
-            step.value if isinstance(step, Number) else None,
-        )
-        return Array(iterable[s])
-
-    @_eval_args
-    def _range(
-        self,
-        start: Number[int],
-        end: Number[int],
-        step: Union[Number[int], Null] = NULL,
-    ) -> Array[Number[int]]:
-        return Array(
-            [
-                Number(i)
-                for i in range(
-                    start.value,
-                    end.value + 1,
-                    step.value if isinstance(step, Number) else 1,
-                )
-            ]
-        )
-
-    @_eval_args
-    def _filter(self, func: Function, value: Array[_T]) -> Array[_T]:
-        return Array([item for item in value if func(item)])
-
-    @_eval_args
-    def _map(self, func: Function, value: Primitive) -> Primitive:
-        if isinstance(value, Array):
-            return Array(map(func, value))
-        raise PysonnetRuntimeError(f"Cannot map over {self._type(value)}")
-
-    @_eval_args
-    def _make_array(self, size: int, func: Function[_T]) -> Array[_T]:
-        return Array([func(Number(i)) for i in range(size)])
-
-    @_eval_args
-    def _join(self, delimiter: String, value: Array[String]) -> String:
-        return String(delimiter.join(value))
 
     @_eval_args
     def _codepoint(self, value: String) -> Number[int]:
@@ -535,6 +500,228 @@ class StdLib:
             )
         )
 
+    @_eval_args
+    def _make_array(self, size: int, func: Function[_T]) -> Array[_T]:
+        return Array([func(Number(i)) for i in range(size)])
+
+    @_eval_args
+    def _member(self, arr: Union[Array, String], x: Primitive) -> Boolean:
+        x_json = x.to_json()
+        return Boolean(any(v if isinstance(v, str) else v.to_json() == x_json for v in arr))
+
+    @_eval_args
+    def _count(self, value: Primitive, arr: Union[Array, String]) -> Number[int]:
+        value_json = value.to_json()
+        return Number(sum(v if isinstance(v, str) else v.to_json() == value_json for v in arr))
+
+    @_eval_args
+    def _find(self, value: Primitive, arr: Union[Array, String]) -> Array[Number[int]]:
+        value_json = value.to_json()
+        return Array([Number(i) for i, v in enumerate(arr) if v.to_json() == value_json])
+
+    @_eval_args
+    def _map(self, func: Function, arr: Primitive) -> Primitive:
+        if isinstance(arr, Array):
+            return Array(map(func, arr))
+        raise PysonnetRuntimeError(f"Cannot map over {self._type(arr)}")
+
+    @_eval_args
+    def _map_with_index(self, func: Function, arr: Primitive) -> Primitive:
+        if isinstance(arr, Array):
+            return Array(itertools.starmap(Function(lambda i, v: func(Number(i), v)), enumerate(arr)))
+        raise PysonnetRuntimeError(f"Cannot map over {self._type(arr)}")
+
+    @_eval_args
+    def _filter(self, func: Function, arr: Array[_T]) -> Array[_T]:
+        return Array([item for item in arr if func(item)])
+
+    @_eval_args
+    def _filter_map(self, filter_func: Function, map_func: Function, arr: Array) -> Array:
+        return Array([map_func(item) for item in arr if filter_func(item)])
+
+    @_eval_args
+    def _flat_map(self, func: Function, arr: Union[String, Array]) -> Union[String, Array]:
+        result: List[Primitive] = []
+        for value in arr:
+            if isinstance(value, str):
+                value = String(value)
+            out = func(value)
+            if not isinstance(out, type(arr)):
+                raise PysonnetRuntimeError(f"Unexpected type {type(out)}, expected {type(arr)}")
+            result.extend(out)
+        if isinstance(arr, String):
+            result_string = ""
+            for val in result:
+                if not isinstance(val, str):
+                    raise PysonnetRuntimeError(f"Unexpected type {type(val)}, expected String")
+                result_string += val
+            return String(result_string)
+        return Array(result)
+
+    @_eval_args
+    def _foldl(self, func: Function, arr: Array[_T], init: _T) -> _T:
+        return reduce(func, arr, init)
+
+    @_eval_args
+    def _foldr(self, func: Function, arr: Array[_T], init: _T) -> _T:
+        return reduce(func, reversed(arr), init)
+
+    @_eval_args
+    def _range(
+        self,
+        from_: Number[int],
+        to: Number[int],
+        step: Union[Number[int], Null] = NULL,
+    ) -> Array[Number[int]]:
+        return Array(
+            [
+                Number(i)
+                for i in range(
+                    from_.value,
+                    to.value + 1,
+                    step.value if isinstance(step, Number) else 1,
+                )
+            ]
+        )
+
+    @_eval_args
+    def _repeat(self, what: Union[String, Array], count: Number[int]) -> Union[String, Array]:
+        if isinstance(what, String):
+            return String("".join(itertools.repeat(what, count.value)))
+        return Array([v for _ in range(count.value) for v in what])
+
+    @_eval_args
+    def _slice(
+        self,
+        indexable: Union[String, Array[_T]],
+        index: Union[Number[int], Null],
+        end: Union[Number[int], Null],
+        step: Union[Number[int], Null],
+    ) -> Union[String, Array[_T]]:
+        s = slice(
+            index.value if isinstance(index, Number) else None,
+            end.value if isinstance(end, Number) else None,
+            step.value if isinstance(step, Number) else None,
+        )
+        if isinstance(indexable, String):
+            return String(indexable[s])
+        return Array(indexable[s])
+
+    @_eval_args
+    def _join(self, sep: Union[String, Array], arr: Array) -> Union[String, Array]:
+        results: List[Primitive] = []
+        for i, value in enumerate(arr):
+            if type(sep) is not type(value):
+                raise PysonnetRuntimeError(f"Unexpected type {type(value)}, expected {type(sep)}")
+            if i > 0:
+                results += sep if isinstance(sep, Array) else [sep]
+            results += list(value) if isinstance(value, Array) else [value]
+        if isinstance(sep, String):
+            return String("".join(str(val) for val in results))
+        return Array(results)
+
+    @_eval_args
+    def _lines(self, arr: Array[String]) -> String:
+        return String("\n".join(arr) + "\n")
+
+    @_eval_args
+    def _flatten_arrays(self, arr: Array[Array[_T]]) -> Array[_T]:
+        return Array([val for inner in arr for val in inner])
+
+    @_eval_args
+    def _flatten_deep_array(self, value: Array) -> Array:
+        def flatten_recuesively(x: Array) -> Array:
+            results: List[Primitive] = []
+            for val in x:
+                if isinstance(val, Array):
+                    results += list(flatten_recuesively(val))
+                else:
+                    results.append(val)
+            return Array(results)
+
+        return flatten_recuesively(value)
+
+    @_eval_args
+    def _reverse(self, arrs: Union[String, Array]) -> Union[String, Array]:
+        if isinstance(arrs, String):
+            return String(arrs[::-1])
+        return Array(arrs[::-1])
+
+    @_eval_args
+    def _sort(self, arr: Array[_T], keyF: Optional[Function] = None) -> Array[_T]:
+        def key(x: Primitive) -> Primitive:
+            if keyF is None:
+                return x
+            if isinstance(x, Lazy):
+                x = x()
+            o: Primitive = keyF(x)
+            if isinstance(o, Lazy):
+                o = o()
+            return o
+
+        return Array(sorted(arr, key=key))  # type: ignore
+
+    @_eval_args
+    def _uniq(self, arr: Array[_T], keyF: Optional[Function] = None) -> Array[_T]:
+        def get_key(x: Primitive) -> JsonPrimitive:
+            if keyF is None:
+                return x.to_json()
+            if isinstance(x, Lazy):
+                x = x()
+            o: Primitive = keyF(x)
+            if isinstance(o, Lazy):
+                o = o()
+            return o.to_json()
+
+        seen: Set[JsonPrimitive] = set()
+        results: List[_T] = []
+        for val in arr:
+            key = get_key(val)
+            if key in seen:
+                continue
+            seen.add(key)
+            results.append(val)
+        return Array(results)
+
+    @_eval_args
+    def _all(self, arr: Array[Boolean]) -> Boolean:
+        if not all(isinstance(v, Boolean) for v in arr):
+            raise PysonnetRuntimeError("All values must be boolean")
+        return Boolean(all(v.to_json() for v in arr))
+
+    @_eval_args
+    def _any(self, arr: Array[Boolean]) -> Boolean:
+        if not all(isinstance(v, Boolean) for v in arr):
+            raise PysonnetRuntimeError("All values must be boolean")
+        return Boolean(any(v.to_json() for v in arr))
+
+    @_eval_args
+    def _sum(self, arr: Array[Number]) -> Number:
+        return Number(sum(v.value for v in arr))
+
+    @_eval_args
+    def _contains(self, arr: Array[_T], elem: _T) -> Boolean:
+        return Boolean(any(v == elem for v in arr))
+
+    @_eval_args
+    def _avg(self, arr: Array[Number]) -> Number:
+        if not arr:
+            raise PysonnetRuntimeError("Cannot calculate average of an empty array.")
+        return Number(sum(v.value for v in arr) / len(arr))
+
+    @_eval_args
+    def _remove(self, arr: Array[_T], elem: _T) -> Array[_T]:
+        index = -1
+        for i, value in enumerate(arr):
+            if value == elem:
+                index = i
+                break
+        return Array([v for i, v in enumerate(arr) if i != index])
+
+    @_eval_args
+    def _remove_at(self, arr: Array[_T], idx: Number[int]) -> Array[_T]:
+        return Array([v for i, v in enumerate(arr) if i != idx.value])
+
     def as_object(self) -> Object:
         return Object(
             Object.Field(String("extVar"), Function(self._ext_var)),
@@ -543,11 +730,6 @@ class StdLib:
             Object.Field(String("length"), Function(self._length)),
             Object.Field(String("get"), Function(self._get)),
             Object.Field(String("objectHas"), Function(self._object_has)),
-            Object.Field(String("slice"), Function(self._slice)),
-            Object.Field(String("range"), Function(self._range)),
-            Object.Field(String("map"), Function(self._map)),
-            Object.Field(String("makeArray"), Function(self._make_array)),
-            Object.Field(String("join"), Function(self._join)),
             Object.Field(String("codepoint"), Function(self._codepoint)),
             Object.Field(String("char"), Function(self._char)),
             Object.Field(String("substr"), Function(self._substr)),
@@ -614,4 +796,32 @@ class StdLib:
             Object.Field(String("manifestJsonEx"), Function(self._manifest_json_ex)),
             Object.Field(String("manifestJson"), Function(self._manifest_json)),
             Object.Field(String("manifestJsonMinified"), Function(self._manifest_json_minified)),
+            Object.Field(String("makeArray"), Function(self._make_array)),
+            Object.Field(String("member"), Function(self._member)),
+            Object.Field(String("count"), Function(self._count)),
+            Object.Field(String("find"), Function(self._find)),
+            Object.Field(String("map"), Function(self._map)),
+            Object.Field(String("mapWithIndex"), Function(self._map_with_index)),
+            Object.Field(String("filter"), Function(self._filter)),
+            Object.Field(String("filterMap"), Function(self._filter_map)),
+            Object.Field(String("flatMap"), Function(self._flat_map)),
+            Object.Field(String("foldl"), Function(self._foldl)),
+            Object.Field(String("foldr"), Function(self._foldr)),
+            Object.Field(String("range"), Function(self._range)),
+            Object.Field(String("repeat"), Function(self._repeat)),
+            Object.Field(String("slice"), Function(self._slice)),
+            Object.Field(String("join"), Function(self._join)),
+            Object.Field(String("lines"), Function(self._lines)),
+            Object.Field(String("flattenArrays"), Function(self._flatten_arrays)),
+            Object.Field(String("flattenDeepArray"), Function(self._flatten_deep_array)),
+            Object.Field(String("reverse"), Function(self._reverse)),
+            Object.Field(String("sort"), Function(self._sort)),
+            Object.Field(String("uniq"), Function(self._uniq)),
+            Object.Field(String("all"), Function(self._all)),
+            Object.Field(String("any"), Function(self._any)),
+            Object.Field(String("sum"), Function(self._sum)),
+            Object.Field(String("contains"), Function(self._contains)),
+            Object.Field(String("avg"), Function(self._avg)),
+            Object.Field(String("remove"), Function(self._remove)),
+            Object.Field(String("removeAt"), Function(self._remove_at)),
         )
