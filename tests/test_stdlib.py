@@ -4,6 +4,7 @@ from typing import Any
 
 import pytest
 
+from pysonnet.errors import PysonnetRuntimeError
 from pysonnet.evaluator import Evaluator
 from pysonnet.lexer import Lexer
 from pysonnet.parser import Parser
@@ -14,6 +15,31 @@ from pysonnet.parser import Parser
     [
         ("std.prune({'a': {b: [[]]}})", {}),
         ("std.prune({'a': {b: [], c: 1, d: null}})", {"a": {"c": 1}}),
+        ("std.codepoint('a')", 97),
+        ("std.char(97)", "a"),
+        ("std.substr('hello', 1, 2)", "el"),
+        ("std.findSubstr('bb', 'abbbc')", [1, 2]),
+        ("std.startsWith('hello', 'he')", True),
+        ("std.endsWith('hello', 'lo')", True),
+        ("std.stripChars(' test  ', ' ')", "test"),
+        ("std.lstripChars(' test  ', ' ')", "test  "),
+        ("std.rstripChars(' test  ', ' ')", " test"),
+        ("std.split('a,b,c', ',')", ["a", "b", "c"]),
+        ("std.splitLimit('a,b,c', ',', 1)", ["a", "b,c"]),
+        ("std.splitLimitR('a,b,c', ',', 1)", ["a,b", "c"]),
+        ("std.strReplace('I like to skate with my skateboard', 'skate', 'surf')", "I like to surf with my surfboard"),
+        ("std.isEmpty('')", True),
+        ("std.isEmpty('x')", False),
+        ("std.trim(' hello  ')", "hello"),
+        ("std.equalsIgnoreCase('aBc', 'AbC')", True),
+        ("std.asciiUpper('100 Cats!')", "100 CATS!"),
+        ("std.asciiLower('100 Cats!')", "100 cats!"),
+        ("std.stringChars('foo')", ["f", "o", "o"]),
+        ("std.escapeStringBash(\"echo 'foo'\")", "'echo '\"'\"'foo'\"'\"''"),
+        ("std.escapeStringDollars('hello $name')", "hello $$name"),
+        ("std.escapeStringJson('Multiline\\nc:\\\\path')", '"Multiline\\nc:\\\\path"'),
+        ("std.escapeStringPython('Multiline\\nc:\\\\path')", '"Multiline\\nc:\\\\path"'),
+        ("std.escapeStringXml('<test>')", "&lt;test&gt;"),
         # Mathematical functions
         ("std.mod(5, 2)", 1),
         ("std.abs(1)", 1),
@@ -54,5 +80,20 @@ def test_evaluate(inputs: str, expected: Any) -> None:
     node = parser.parse()
     assert node is not None
     result = evaluator(node).to_json()
-    print("result", result, type(result))
     assert result == expected
+
+
+def test_assert_equal() -> None:
+    evaluator = Evaluator()
+
+    parser = Parser(Lexer(StringIO("std.assertEqual(1, 1)")))
+    node = parser.parse()
+    assert node is not None
+    result = evaluator(node).to_json()
+    assert result
+
+    parser = Parser(Lexer(StringIO("std.assertEqual(1, 2)")))
+    node = parser.parse()
+    assert node is not None
+    with pytest.raises(PysonnetRuntimeError):
+        evaluator(node)
