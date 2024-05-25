@@ -181,6 +181,57 @@ class StdLib:
         return rest
 
     @_eval_args
+    def _prune(self, a: Primitive) -> Primitive:
+        def is_empty(obj: Primitive) -> bool:
+            if isinstance(obj, Lazy):
+                obj = obj()
+            if isinstance(obj, Null):
+                return True
+            if isinstance(obj, Array):
+                return len(obj) == 0
+            if isinstance(obj, Object):
+                return len(obj) == 0 or all(is_empty(field.value) for field in obj.fields)
+            print("is_empty", obj, type(obj))
+            return False
+
+        def prune_recursively(obj: Primitive) -> Primitive:
+            if isinstance(obj, Lazy):
+                obj = obj()
+            if isinstance(obj, Array):
+                obj = Array([prune_recursively(item) for item in obj if not is_empty(item)])
+                obj = Array([item for item in obj if not is_empty(item)])
+            if isinstance(obj, Object):
+                for field in obj.fields:
+                    print(field.key, field.value, is_empty(field.value))
+                obj = Object(
+                    *[
+                        Object.Field(
+                            field.key,
+                            prune_recursively(field.value),
+                            field.inherit,
+                            field.visibility,
+                        )
+                        for field in obj.fields
+                        if not is_empty(field.value)
+                    ]
+                )
+                obj = Object(
+                    *[
+                        Object.Field(
+                            field.key,
+                            field.value,
+                            field.inherit,
+                            field.visibility,
+                        )
+                        for field in obj.fields
+                        if not is_empty(field.value)
+                    ]
+                )
+            return obj
+
+        return prune_recursively(a)
+
+    @_eval_args
     def _manifest_json_ex(
         self,
         value: Primitive,
@@ -219,5 +270,6 @@ class StdLib:
             Object.Field(String("toString"), Function(self._to_string)),
             Object.Field(String("format"), Function(self._format)),
             Object.Field(String("trace"), Function(self._trace)),
+            Object.Field(String("prune"), Function(self._prune)),
             Object.Field(String("manifestJsonEx"), Function(self._manifest_json_ex)),
         )
