@@ -424,6 +424,30 @@ class StdLib:
         return prune_recursively(a)
 
     @_eval_args
+    def _parse_int(self, str: String) -> Number[int]:
+        return Number(int(str))
+
+    @_eval_args
+    def _parse_octal(self, str: String) -> Number[int]:
+        return Number(int(str, 8))
+
+    @_eval_args
+    def _parse_hex(self, str: String) -> Number[int]:
+        return Number(int(str, 16))
+
+    @_eval_args
+    def _parse_json(self, str: String) -> Primitive:
+        return Primitive.from_json_primitive(json.loads(str))
+
+    @_eval_args
+    def _encode_utf8(self, str: String) -> Array[Number[int]]:
+        return Array([Number(ord(c)) for c in str])
+
+    @_eval_args
+    def _decode_utf8(self, arr: Array[Number[int]]) -> String:
+        return String("".join(chr(i.value) for i in arr))
+
+    @_eval_args
     def _manifest_json_ex(
         self,
         value: Primitive,
@@ -508,5 +532,11 @@ class StdLib:
             Object.Field(String("toString"), Function(self._to_string)),
             Object.Field(String("trace"), Function(self._trace)),
             Object.Field(String("prune"), Function(self._prune)),
+            Object.Field(String("parseInt"), Function(self._parse_int)),
+            Object.Field(String("parseOctal"), Function(self._parse_octal)),
+            Object.Field(String("parseHex"), Function(self._parse_hex)),
+            Object.Field(String("parseJson"), Function(self._parse_json)),
+            Object.Field(String("encodeUTF8"), Function(self._encode_utf8)),
+            Object.Field(String("decodeUTF8"), Function(self._decode_utf8)),
             Object.Field(String("manifestJsonEx"), Function(self._manifest_json_ex)),
         )

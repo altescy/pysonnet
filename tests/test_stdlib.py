@@ -72,6 +72,13 @@ from pysonnet.parser import Parser
         ("std.isInteger(2.5)", False),
         ("std.isDecimal(2)", False),
         ("std.isDecimal(2.5)", True),
+        # parsing functions
+        ("std.parseInt('123')", 123),
+        ("std.parseOctal('755')", 493),
+        ("std.parseHex('ff')", 255),
+        ('std.parseJson(\'{"foo": "bar"}\')', {"foo": "bar"}),
+        ("std.encodeUTF8('test')", [116, 101, 115, 116]),
+        ("std.decodeUTF8([116, 101, 115, 116])", "test"),
     ],
 )
 def test_evaluate(inputs: str, expected: Any) -> None:
