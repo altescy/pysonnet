@@ -1,5 +1,6 @@
 import inspect
 import json
+import math
 import sys
 from functools import wraps
 from typing import Any, Callable, Mapping, TypeVar, Union
@@ -152,16 +153,100 @@ class StdLib:
         return Number(ord(value))
 
     @_eval_args
-    def _abs(self, value: Number) -> Number:
-        return abs(Number(value))  # type: ignore[type-var]
+    def _mod(self, a: Number, b: Number) -> Number:
+        return Number(a.value % b.value)
+
+    @_eval_args
+    def _abs(self, n: Number) -> Number:
+        return abs(Number(n.value))  # type: ignore[type-var]
+
+    @_eval_args
+    def _sign(self, n: Number) -> Number:
+        return Number(1 if n.value > 0 else -1 if n.value < 0 else 0)
 
     @_eval_args
     def _max(self, a: Number, b: Number) -> Number:
-        return Number(max(a, b))
+        return Number(max(a.value, b.value))
 
     @_eval_args
     def _min(self, a: Number, b: Number) -> Number:
-        return Number(min(a, b))
+        return Number(min(a.value, b.value))
+
+    @_eval_args
+    def _pow(self, x: Number, n: Number[Union[int, float]]) -> Number:
+        return Number(x.value**n.value)
+
+    @_eval_args
+    def _exp(self, x: Number) -> Number:
+        return Number(math.exp(x.value))
+
+    @_eval_args
+    def _log(self, x: Number) -> Number:
+        return Number(math.log(x.value))
+
+    @_eval_args
+    def _exponent(self, x: Number) -> Number:
+        return Number(math.frexp(x.value)[1])
+
+    @_eval_args
+    def _mantissa(self, x: Number) -> Number:
+        return Number(math.frexp(x.value)[0])
+
+    @_eval_args
+    def _floor(self, x: Number) -> Number:
+        return Number(math.floor(x.value))
+
+    @_eval_args
+    def _ceil(self, x: Number) -> Number:
+        return Number(math.ceil(x.value))
+
+    @_eval_args
+    def _sqrt(self, x: Number) -> Number:
+        return Number(math.sqrt(x.value))
+
+    @_eval_args
+    def _sin(self, x: Number) -> Number:
+        return Number(math.sin(x.value))
+
+    @_eval_args
+    def _cos(self, x: Number) -> Number:
+        return Number(math.cos(x.value))
+
+    @_eval_args
+    def _tan(self, x: Number) -> Number:
+        return Number(math.tan(x.value))
+
+    @_eval_args
+    def _asin(self, x: Number) -> Number:
+        return Number(math.asin(x.value))
+
+    @_eval_args
+    def _acos(self, x: Number) -> Number:
+        return Number(math.acos(x.value))
+
+    @_eval_args
+    def _atan(self, x: Number) -> Number:
+        return Number(math.atan(x.value))
+
+    @_eval_args
+    def _round(self, x: Number) -> Number:
+        return Number(round(x.value))
+
+    @_eval_args
+    def _is_even(self, x: Number) -> Boolean:
+        return Boolean(x.value % 2 == 0)
+
+    @_eval_args
+    def _is_odd(self, x: Number) -> Boolean:
+        return Boolean(x.value % 2 != 0)
+
+    @_eval_args
+    def _is_integer(self, x: Number) -> Boolean:
+        return Boolean(type(x.value) is int)
+
+    @_eval_args
+    def _is_decimal(self, x: Number) -> Boolean:
+        return Boolean(type(x.value) is float)
 
     @_eval_args
     def _clamp(self, a: Number, minVal: Number, maxVal: Number) -> Number:
@@ -263,9 +348,30 @@ class StdLib:
             Object.Field(String("makeArray"), Function(self._make_array)),
             Object.Field(String("join"), Function(self._join)),
             Object.Field(String("codepoint"), Function(self._codepoint)),
+            Object.Field(String("mod"), Function(self._mod)),
             Object.Field(String("abs"), Function(self._abs)),
+            Object.Field(String("sign"), Function(self._sign)),
             Object.Field(String("max"), Function(self._max)),
             Object.Field(String("min"), Function(self._min)),
+            Object.Field(String("pow"), Function(self._pow)),
+            Object.Field(String("exp"), Function(self._exp)),
+            Object.Field(String("log"), Function(self._log)),
+            Object.Field(String("exponent"), Function(self._exponent)),
+            Object.Field(String("mantissa"), Function(self._mantissa)),
+            Object.Field(String("floor"), Function(self._floor)),
+            Object.Field(String("ceil"), Function(self._ceil)),
+            Object.Field(String("sqrt"), Function(self._sqrt)),
+            Object.Field(String("sin"), Function(self._sin)),
+            Object.Field(String("cos"), Function(self._cos)),
+            Object.Field(String("tan"), Function(self._tan)),
+            Object.Field(String("asin"), Function(self._asin)),
+            Object.Field(String("acos"), Function(self._acos)),
+            Object.Field(String("atan"), Function(self._atan)),
+            Object.Field(String("round"), Function(self._round)),
+            Object.Field(String("isEven"), Function(self._is_even)),
+            Object.Field(String("isOdd"), Function(self._is_odd)),
+            Object.Field(String("isInteger"), Function(self._is_integer)),
+            Object.Field(String("isDecimal"), Function(self._is_decimal)),
             Object.Field(String("clamp"), Function(self._clamp)),
             Object.Field(String("toString"), Function(self._to_string)),
             Object.Field(String("format"), Function(self._format)),
