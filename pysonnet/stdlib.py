@@ -103,23 +103,6 @@ class StdLib:
         raise PysonnetRuntimeError(f"Cannot get length of {self._type(x)}")
 
     @_eval_args
-    def _get(
-        self,
-        o: Object,
-        f: String,
-        default: Primitive = NULL,
-        inc_hidden: Boolean = TRUE,
-    ) -> Primitive:
-        value = o.get(f)
-        if value is None or (not inc_hidden and o.hidden(f)):
-            return default
-        return value
-
-    @_eval_args
-    def _object_has(self, o: Object, f: String) -> Boolean:
-        return Boolean(f in o and not o.hidden(f))
-
-    @_eval_args
     def _codepoint(self, value: String) -> Number[int]:
         return Number(ord(value))
 
@@ -780,14 +763,74 @@ class StdLib:
         key_x = (keyF(x) if keyF else x).to_json()
         return Boolean(key_x in set_arr)
 
+    @_eval_args
+    def _get(
+        self,
+        o: Object,
+        f: String,
+        default: Primitive = NULL,
+        inc_hidden: Boolean = TRUE,
+    ) -> Primitive:
+        value = o.get(f)
+        if value is None or (not inc_hidden and o.hidden(f)):
+            return default
+        return value
+
+    @_eval_args
+    def _object_has(self, o: Object, f: String) -> Boolean:
+        field = o.get_field(f)
+        return Boolean(field is not None and field.visibility != Object.Visibility.HIDDEN)
+
+    @_eval_args
+    def _object_fields(self, o: Object) -> Array[String]:
+        return Array([f.key for f in o.fields if f.visibility != Object.Visibility.HIDDEN])
+
+    @_eval_args
+    def _object_values(self, o: Object) -> Array[Primitive]:
+        return Array([f.value for f in o.fields if f.visibility != Object.Visibility.HIDDEN])
+
+    @_eval_args
+    def _object_keys_values(self, o: Object) -> Array[Object]:
+        return Array(
+            [
+                Object(Object.Field(String("key"), f.key), Object.Field(String("value"), f.value))
+                for f in o.fields
+                if f.visibility != Object.Visibility.HIDDEN
+            ]
+        )
+
+    @_eval_args
+    def _object_has_all(self, o: Object, f: String) -> Boolean:
+        return Boolean(o.get_field(f) is not None)
+
+    @_eval_args
+    def _object_fields_all(self, o: Object) -> Array[String]:
+        return Array([f.key for f in o.fields])
+
+    @_eval_args
+    def _object_values_all(self, o: Object) -> Array[Primitive]:
+        return Array([f.value for f in o.fields])
+
+    @_eval_args
+    def _object_keys_values_all(self, o: Object) -> Array[Object]:
+        return Array(
+            [Object(Object.Field(String("key"), f.key), Object.Field(String("value"), f.value)) for f in o.fields]
+        )
+
+    @_eval_args
+    def _object_remove_key(self, obj: Object, key: String) -> Object:
+        return Object(*[field for field in obj.fields if field.key != key])
+
+    @_eval_args
+    def _map_with_key(self, func: Function, obj: Object) -> Object:
+        return Object(*[Object.Field(field.key, func(field.key, field.value)) for field in obj.fields])
+
     def as_object(self) -> Object:
         return Object(
             Object.Field(String("extVar"), Function(self._ext_var)),
             Object.Field(String("native"), Function(self._native)),
             Object.Field(String("type"), Function(self._type)),
             Object.Field(String("length"), Function(self._length)),
-            Object.Field(String("get"), Function(self._get)),
-            Object.Field(String("objectHas"), Function(self._object_has)),
             Object.Field(String("codepoint"), Function(self._codepoint)),
             Object.Field(String("char"), Function(self._char)),
             Object.Field(String("substr"), Function(self._substr)),
@@ -886,4 +929,15 @@ class StdLib:
             Object.Field(String("setInter"), Function(self._set_inter)),
             Object.Field(String("setUnion"), Function(self._set_union)),
             Object.Field(String("setMember"), Function(self._set_member)),
+            Object.Field(String("get"), Function(self._get)),
+            Object.Field(String("objectHas"), Function(self._object_has)),
+            Object.Field(String("objectFields"), Function(self._object_fields)),
+            Object.Field(String("objectValues"), Function(self._object_values)),
+            Object.Field(String("objectKeysValues"), Function(self._object_keys_values)),
+            Object.Field(String("objectHasAll"), Function(self._object_has_all)),
+            Object.Field(String("objectFieldsAll"), Function(self._object_fields_all)),
+            Object.Field(String("objectValuesAll"), Function(self._object_values_all)),
+            Object.Field(String("objectKeysValuesAll"), Function(self._object_keys_values_all)),
+            Object.Field(String("objectRemoveKey"), Function(self._object_remove_key)),
+            Object.Field(String("mapWithKey"), Function(self._map_with_key)),
         )
