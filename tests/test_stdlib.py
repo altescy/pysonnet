@@ -200,6 +200,11 @@ q =""",
         ("std.avg([1, 2, 3])", 2.0),
         ("std.remove([1, 2, 3, 2], 2)", [1, 3, 2]),
         ("std.removeAt([1, 2, 3], 1)", [1, 3]),
+        ("std.set([3, 1, 2, 1])", [1, 2, 3]),
+        ("std.setInter([3, 1, 2], [4, 1, 3])", [1, 3]),
+        ("std.setUnion([3, 1, 2], [4, 1, 3])", [1, 2, 3, 4]),
+        ("std.setMember(2, [3, 1, 2, 2])", True),
+        ("std.setMember(0, [3, 1, 2, 2])", False),
     ],
 )
 def test_evaluate(inputs: str, expected: Any) -> None:

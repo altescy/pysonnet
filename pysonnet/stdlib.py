@@ -722,6 +722,64 @@ class StdLib:
     def _remove_at(self, arr: Array[_T], idx: Number[int]) -> Array[_T]:
         return Array([v for i, v in enumerate(arr) if i != idx.value])
 
+    @_eval_args
+    def _set(self, arr: Array[_T], keyF: Optional[Function] = None) -> Array[_T]:
+        return self._uniq(self._sort(arr, keyF), keyF)
+
+    @_eval_args
+    def _set_inter(self, a: Array, b: Array, keyF: Optional[Function] = None) -> Array:
+        set_a = {}
+        set_b = {}
+        for val in a:
+            key = (keyF(val) if keyF else val).to_json()
+            if key not in set_a:
+                set_a[key] = val
+        for val in b:
+            key = (keyF(val) if keyF else val).to_json()
+            if key not in set_b:
+                set_b[key] = val
+        inter_keys = sorted(set(set_a.keys()) & set(set_b.keys()))
+        return Array([set_a[key] for key in inter_keys])
+
+    @_eval_args
+    def _set_union(self, a: Array, b: Array, keyF: Optional[Function] = None) -> Array:
+        set_a = {}
+        set_b = {}
+        for val in a:
+            key = (keyF(val) if keyF else val).to_json()
+            if key not in set_a:
+                set_a[key] = val
+        for val in b:
+            key = (keyF(val) if keyF else val).to_json()
+            if key not in set_b:
+                set_b[key] = val
+        union_keys = sorted(set(set_a.keys()) | set(set_b.keys()))
+        return Array([set_a[key] if key in set_a else set_b[key] for key in union_keys])
+
+    @_eval_args
+    def _set_diff(self, a: Array, b: Array, keyF: Optional[Function] = None) -> Array:
+        set_a = {}
+        set_b = {}
+        for val in a:
+            key = (keyF(val) if keyF else val).to_json()
+            if key not in set_a:
+                set_a[key] = val
+        for val in b:
+            key = (keyF(val) if keyF else val).to_json()
+            if key not in set_b:
+                set_b[key] = val
+        diff_keys = sorted(set(set_a.keys()) - set(set_b.keys()))
+        return Array([set_a[key] for key in diff_keys])
+
+    @_eval_args
+    def _set_member(self, x: _T, arr: Array[_T], keyF: Optional[Function] = None) -> Boolean:
+        set_arr = {}
+        for val in arr:
+            key = (keyF(val) if keyF else val).to_json()
+            set_arr[key] = val
+        key_x = (keyF(x) if keyF else x).to_json()
+        return Boolean(key_x in set_arr)
+
     def as_object(self) -> Object:
         return Object(
             Object.Field(String("extVar"), Function(self._ext_var)),
@@ -824,4 +882,8 @@ class StdLib:
             Object.Field(String("avg"), Function(self._avg)),
             Object.Field(String("remove"), Function(self._remove)),
             Object.Field(String("removeAt"), Function(self._remove_at)),
+            Object.Field(String("set"), Function(self._set)),
+            Object.Field(String("setInter"), Function(self._set_inter)),
+            Object.Field(String("setUnion"), Function(self._set_union)),
+            Object.Field(String("setMember"), Function(self._set_member)),
         )
