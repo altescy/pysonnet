@@ -154,6 +154,7 @@ q =""",
             '{"x":[1,2,3,true,false,null,"string"],"y":{"a":1,"b":2,"c":[1,2]}}',
         ),
         # array functions
+        ("std.makeArray(3,function(x) x * x)", [0, 1, 4]),
         ("std.member([1, 2, 3], 2)", True),
         ("std.member([{a: 1}, {a: 2}], {a: 1})", True),
         ("std.member([{a: 1}, {a: 2}], {a: 3})", False),

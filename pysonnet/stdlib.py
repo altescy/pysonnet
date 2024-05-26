@@ -486,8 +486,8 @@ class StdLib:
         )
 
     @_eval_args
-    def _make_array(self, size: int, func: Function[_T]) -> Array[_T]:
-        return Array([func(Number(i)) for i in range(size)])
+    def _make_array(self, sz: Number[int], func: Function[_T]) -> Array[_T]:
+        return Array([func(Number(i)) for i in range(sz.value)])
 
     @_eval_args
     def _member(self, arr: Union[Array, String], x: Primitive) -> Boolean:
