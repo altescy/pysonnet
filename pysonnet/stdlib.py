@@ -869,6 +869,21 @@ class StdLib:
     def _xnor(self, x: Boolean, y: Boolean) -> Boolean:
         return Boolean(x == y)
 
+    @_eval_args
+    def _merge_patch(self, target: Object, patch: Object) -> Object:
+        fields: List[Object.Field] = []
+        for field in target.fields:
+            patch_field = patch.get_field(field.key)
+            if patch_field is not None and patch_field.visibility != Object.Visibility.HIDDEN:
+                fields.append(patch_field)
+                continue
+            fields.append(field)
+        out = Object(*fields)
+        for field in patch.fields:
+            if out.get_field(field.key) is None:
+                out.add_field(field)
+        return out
+
     def as_object(self) -> Object:
         return Object(
             Object.Field(String("extVar"), Function(self._ext_var)),
@@ -994,4 +1009,5 @@ class StdLib:
             Object.Field(String("sha3"), Function(self._sha3)),
             Object.Field(String("xor"), Function(self._xor)),
             Object.Field(String("xnor"), Function(self._xnor)),
+            Object.Field(String("mergePatch"), Function(self._merge_patch)),
         )

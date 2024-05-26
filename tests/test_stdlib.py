@@ -240,6 +240,8 @@ q =""",
         ("std.xor(false, false)", False),
         ("std.xnor(true, false)", False),
         ("std.xnor(false, false)", True),
+        ("std.mergePatch({a: 1, b: 2}, {b: 3, c: 4})", {"a": 1, "b": 3, "c": 4}),
+        ("std.mergePatch({a: 1, b: 2}, {b:: 3, c: 4})", {"a": 1, "b": 2, "c": 4}),
     ],
 )
 def test_evaluate(inputs: str, expected: Any) -> None:
