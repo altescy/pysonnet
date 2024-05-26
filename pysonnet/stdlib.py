@@ -1,3 +1,5 @@
+import base64
+import hashlib
 import inspect
 import itertools
 import json
@@ -503,10 +505,10 @@ class StdLib:
         return Array([Number(i) for i, v in enumerate(arr) if v.to_json() == value_json])
 
     @_eval_args
-    def _map(self, func: Function, arr: Primitive) -> Primitive:
-        if isinstance(arr, Array):
-            return Array(map(func, arr))
-        raise PysonnetRuntimeError(f"Cannot map over {self._type(arr)}")
+    def _map(self, func: Function, arr: Union[String, Array]) -> Array:
+        if isinstance(arr, String):
+            return Array([func(String(c)) for c in arr])
+        return Array(map(func, arr))
 
     @_eval_args
     def _map_with_index(self, func: Function, arr: Primitive) -> Primitive:
@@ -825,6 +827,40 @@ class StdLib:
     def _map_with_key(self, func: Function, obj: Object) -> Object:
         return Object(*[Object.Field(field.key, func(field.key, field.value)) for field in obj.fields])
 
+    @_eval_args
+    def _base64(self, input: Union[String, Array[Number[int]]]) -> String:
+        if isinstance(input, String):
+            return String(base64.b64encode(input.encode()).decode())
+        return String(base64.b64encode(bytes([n.value for n in input])).decode())
+
+    @_eval_args
+    def _base64_decode_bytes(self, str: String) -> Array[Number[int]]:
+        return Array([Number(b) for b in base64.b64decode(str)])
+
+    @_eval_args
+    def _base64_decode(self, str: String) -> String:
+        return String(base64.b64decode(str).decode())
+
+    @_eval_args
+    def _md5(self, s: String) -> String:
+        return String(hashlib.md5(s.encode()).hexdigest())
+
+    @_eval_args
+    def _sha1(self, s: String) -> String:
+        return String(hashlib.sha1(s.encode()).hexdigest())
+
+    @_eval_args
+    def _sha256(self, s: String) -> String:
+        return String(hashlib.sha256(s.encode()).hexdigest())
+
+    @_eval_args
+    def _sha512(self, s: String) -> String:
+        return String(hashlib.sha512(s.encode()).hexdigest())
+
+    @_eval_args
+    def _sha3(self, s: String) -> String:
+        return String(hashlib.sha3_512(s.encode()).hexdigest())
+
     def as_object(self) -> Object:
         return Object(
             Object.Field(String("extVar"), Function(self._ext_var)),
@@ -940,4 +976,12 @@ class StdLib:
             Object.Field(String("objectKeysValuesAll"), Function(self._object_keys_values_all)),
             Object.Field(String("objectRemoveKey"), Function(self._object_remove_key)),
             Object.Field(String("mapWithKey"), Function(self._map_with_key)),
+            Object.Field(String("base64"), Function(self._base64)),
+            Object.Field(String("base64DecodeBytes"), Function(self._base64_decode_bytes)),
+            Object.Field(String("base64Decode"), Function(self._base64_decode)),
+            Object.Field(String("md5"), Function(self._md5)),
+            Object.Field(String("sha1"), Function(self._sha1)),
+            Object.Field(String("sha256"), Function(self._sha256)),
+            Object.Field(String("sha512"), Function(self._sha512)),
+            Object.Field(String("sha3"), Function(self._sha3)),
         )

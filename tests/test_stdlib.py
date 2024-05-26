@@ -221,6 +221,21 @@ q =""",
         ("std.objectKeysValuesAll({a: 1, b:: 2})", [{"key": "a", "value": 1}, {"key": "b", "value": 2}]),
         ("std.objectRemoveKey({a: 1, b: 2}, 'a')", {"b": 2}),
         ("std.mapWithKey(function(k, v) k+v, {'a': 'foo', 'b': 'bar'})", {"a": "afoo", "b": "bbar"}),
+        ("std.base64('hello')", "aGVsbG8="),
+        ("std.base64(std.map(std.codepoint, 'hello'))", "aGVsbG8="),
+        ("std.base64DecodeBytes('aGVsbG8=')", [104, 101, 108, 108, 111]),
+        ("std.base64Decode('aGVsbG8=')", "hello"),
+        ("std.md5('hello')", "5d41402abc4b2a76b9719d911017c592"),
+        ("std.sha1('hello')", "aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d"),
+        ("std.sha256('hello')", "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
+        (
+            "std.sha512('hello')",
+            "9b71d224bd62f3785d96d46ad3ea3d73319bfbc2890caadae2dff72519673ca72323c3d99ba5c11d7c7acc6e14b8c5da0c4663475c2e5c3adef46f73bcdec043",
+        ),
+        (
+            "std.sha3('hello')",
+            "75d527c368f2efe848ecf6b073a36767800805e9eef2b1857d5f984f036eb6df891d75f72d9b154518c1cd58835286d1da9a38deba3de98b5a53e5ed78a84976",
+        ),
     ],
 )
 def test_evaluate(inputs: str, expected: Any) -> None:
