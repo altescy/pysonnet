@@ -861,6 +861,14 @@ class StdLib:
     def _sha3(self, s: String) -> String:
         return String(hashlib.sha3_512(s.encode()).hexdigest())
 
+    @_eval_args
+    def _xor(self, x: Boolean, y: Boolean) -> Boolean:
+        return Boolean(x != y)
+
+    @_eval_args
+    def _xnor(self, x: Boolean, y: Boolean) -> Boolean:
+        return Boolean(x == y)
+
     def as_object(self) -> Object:
         return Object(
             Object.Field(String("extVar"), Function(self._ext_var)),
@@ -984,4 +992,6 @@ class StdLib:
             Object.Field(String("sha256"), Function(self._sha256)),
             Object.Field(String("sha512"), Function(self._sha512)),
             Object.Field(String("sha3"), Function(self._sha3)),
+            Object.Field(String("xor"), Function(self._xor)),
+            Object.Field(String("xnor"), Function(self._xnor)),
         )

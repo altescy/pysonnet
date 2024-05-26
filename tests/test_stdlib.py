@@ -236,6 +236,10 @@ q =""",
             "std.sha3('hello')",
             "75d527c368f2efe848ecf6b073a36767800805e9eef2b1857d5f984f036eb6df891d75f72d9b154518c1cd58835286d1da9a38deba3de98b5a53e5ed78a84976",
         ),
+        ("std.xor(true, false)", True),
+        ("std.xor(false, false)", False),
+        ("std.xnor(true, false)", False),
+        ("std.xnor(false, false)", True),
     ],
 )
 def test_evaluate(inputs: str, expected: Any) -> None:
