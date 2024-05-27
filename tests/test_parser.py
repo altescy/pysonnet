@@ -721,6 +721,18 @@ from pysonnet.parser import Parser
                 [ast.ForSpec(ast.Identifier("b"), ast.Array([ast.Identifier("n"), ast.Number(2)]))],
             ),
         ),
+        (
+            "{ one():: 1 }",
+            ast.Object(
+                [
+                    ast.ObjectField(
+                        ast.String("one"),
+                        ast.Number(1),
+                        visibility=ast.ObjectField.Visibility.HIDDEN,
+                    )
+                ]
+            ),
+        ),
     ],
 )
 def test_object_expression(inputs: str, expected_expr: Any) -> None:

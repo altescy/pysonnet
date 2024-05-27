@@ -562,13 +562,14 @@ class Parser:
 
         params: Optional[List[ast.Param]] = None
         if self._peek_token_type_is(TokenType.LPAREN):
-            self.next_token()
-            self.next_token()
-            params = self._parse_params()
-            if params is None:
-                return None
-            if not self._expect_peek_type(TokenType.RPAREN):
-                return None
+            self.next_token()  # consume the '(' token
+            self.next_token()  # move to the first token in the params
+            if not self._current_token_type_is(TokenType.RPAREN):
+                params = self._parse_params()
+                if params is None:
+                    return None
+                if not self._expect_peek_type(TokenType.RPAREN):
+                    return None
 
         inherit = False
         if self._peek_token_type_is(TokenType.PLUS):

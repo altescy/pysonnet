@@ -91,7 +91,7 @@ class Evaluator:
                     raise PysonnetRuntimeError(f"Duplicate field: {key}")
                 objfields[key] = member
             elif isinstance(member, ast.ObjectLocal):
-                bindings[member.bind.ident.name] = _make_lazy(self, member.bind.expr, context)
+                bindings[member.bind.ident.name] = _make_lazy(self, member.bind.expr, context.clone())
             elif isinstance(member, ast.Assert):
                 condition = self(member.condition, context)
                 if not isinstance(condition, Boolean):
@@ -353,6 +353,7 @@ class Evaluator:
         compspecs = [compspec for compspec in node.compspecs]
         while compspecs and isinstance(compspecs[0], ast.IfSpec):
             ifspec = cast(ast.IfSpec, compspecs.pop(0))
+            indices: List[int] = []
             for index, value in enumerate(iterable):
                 context.bindings[node.forspec.ident.name] = value
                 condition = self(ifspec.condition, context)
@@ -360,8 +361,9 @@ class Evaluator:
                     condition = condition()
                 if not isinstance(condition, Boolean):
                     raise PysonnetRuntimeError(f"Unpexpected type {self._stdlib._type(condition)}, expected boolean")
-                if not condition:
-                    iterable.pop(index)
+                if condition:
+                    indices.append(index)
+            iterable = Array([iterable[index] for index in indices])
         values: List[Primitive] = []
         for value in iterable:
             context.bindings[node.forspec.ident.name] = value
@@ -387,6 +389,7 @@ class Evaluator:
         compspecs = [compspec for compspec in node.compspecs]
         while compspecs and isinstance(compspecs[0], ast.IfSpec):
             ifspec = cast(ast.IfSpec, compspecs.pop(0))
+            indices: List[int] = []
             for index, value in enumerate(iterable):
                 context.bindings[node.forspec.ident.name] = value
                 condition = self(ifspec.condition, context)
@@ -394,8 +397,10 @@ class Evaluator:
                     condition = condition()
                 if not isinstance(condition, Boolean):
                     raise PysonnetRuntimeError(f"Unpexpected type {self._stdlib._type(condition)}, expected boolean")
-                if not condition:
-                    iterable.pop(index)
+                if condition:
+                    indices.append(index)
+            iterable = Array([iterable[index] for index in indices])
+
         obj = Object()
         context.this = obj
         if context.dollar is None:
@@ -499,6 +504,7 @@ class Evaluator:
         return Array([Number(b) for b in filename.read_bytes()])
 
     def __call__(self, node: ast.AST, context: Optional[Context] = None) -> Primitive:
+        print("evaluate", node)
         if context is None:
             context = Context()
 

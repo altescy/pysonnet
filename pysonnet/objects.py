@@ -71,6 +71,9 @@ class Lazy(Primitive):
 
 
 class Null(Primitive):
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, Null)
+
     def to_json(self) -> None:
         return None
 

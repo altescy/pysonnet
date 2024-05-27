@@ -275,6 +275,42 @@ from pysonnet.parser import Parser
             """,
             {"a": {"z": {}, "b": {"c": "foo"}, "d": {"c": "foo", "e": "bar"}}},
         ),
+        (
+            """
+            local items = {x: {a: 1}, y: {a: 2, b: 'x'}, z: {a: 3}};
+            {[f + '_b']: items[f].o for f in std.objectFields(items) if std.objectHas(items[f], 'o')}
+            """,
+            {},
+        ),
+        (
+            """
+            local items = {x: {a: 1}, y: {a: 2, b: 'x'}, z: {a: 3}};
+            [items[f].o for f in std.objectFields(items) if std.objectHas(items[f], 'o')]
+            """,
+            [],
+        ),
+        (
+            """
+            local conf = { items: { x: { id: 'x' } } };
+            conf {
+              local default_item = super.items.x,
+              items+: {
+                x+: { a: 123 },
+                y: default_item { b: 456 },
+              },
+            }
+            """,
+            {"items": {"x": {"a": 123, "id": "x"}, "y": {"b": 456, "id": "x"}}},
+        ),
+        ("local value = null; [value == null, value != null]", [True, False]),
+        (
+            """
+            local template = { conf: { name: 'default' }, value: $.conf.value };
+            template { conf+: { value: 123 } })
+            """,
+            {"conf": {"name": "default", "value": 123}, "value": 123},
+        ),
+        # ("{ conf:: { name: 'foo' } } { name: $.conf.name }", {"name": "foo"}),
     ],
 )
 def test_evaluate(inputs: str, expected: Any) -> None:
