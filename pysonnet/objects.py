@@ -331,6 +331,9 @@ class Function(Generic[_PrimitiveType], Primitive):
     def __call__(self, *args: Primitive, **kwargs: Primitive) -> _PrimitiveType:
         return self._func(*args, **kwargs)
 
+    def __repr__(self) -> str:
+        return object.__repr__(self)
+
     def __str__(self) -> str:
         raise NotImplementedError
 
